@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Movie, MoveIt{% endblock %}</title>
+    <style>
+        [data-theme="dark"] {
+            --bg: #0d0d0d;
+            --bg2: #1e1e1e;
+            --bg3: #2a2a2a;
+            --text: #ffffff;
+            --text2: #aaaaaa;
+            --border: #333333;
+            --accent: #e50914;
+        }
+        [data-theme="light"] {
+            --bg: #f5f5f5;
+            --bg2: #ffffff;
+            --bg3: #eeeeee;
+            --text: #111111;
+            --text2: #666666;
+            --border: #dddddd;
+            --accent: #e50914;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: sans-serif;
+            transition: background .3s, color .3s;
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 30px;
+            background: var(--bg2);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-logo {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--accent);
+            text-decoration: none;
+        }
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .lang-select {
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--bg3);
+            color: var(--text);
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .theme-toggle {
+            width: 44px;
+            height: 24px;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            cursor: pointer;
+            position: relative;
+            transition: background .3s;
+        }
+        .theme-toggle::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            top: 2px;
+            left: 2px;
+            transition: transform .3s;
+        }
+        [data-theme="light"] .theme-toggle::after {
+            transform: translateX(20px);
+        }
+        .theme-label {
+            font-size: 0.8rem;
+            color: var(--text2);
+        }
+    </style>
+    {% block extra_style %}{% endblock %}
+</head>
+<body>
+
+<nav>
+    <a href="/" class="nav-logo">🎬 Movie, MoveIt</a>
+    <div class="nav-controls">
+        <span class="theme-label" id="themeLabel">🌙 다크</span>
+        <div class="theme-toggle" onclick="toggleTheme()" id="themeToggle"></div>
+        <select class="lang-select" id="langSelect" onchange="changeLang(this.value)">
+            <option value="ko">🇰🇷 한국어</option>
+            <option value="en">🇺🇸 English</option>
+            <option value="ja">🇯🇵 日本語</option>
+        </select>
+    </div>
+</nav>
+
+{% block content %}{% endblock %}
+
+<script>
+    const themeLabels = {
+        dark:  { ko: '🌙 다크',   en: '🌙 Dark',  ja: '🌙 ダーク'  },
+        light: { ko: '☀️ 라이트', en: '☀️ Light', ja: '☀️ ライト' }
+    };
+
+    const uiTexts = {
+        ko: {
+            search_placeholder: '영화 제목을 입력하세요...',
+            search_btn: '검색',
+            searching: '검색 중...',
+            no_result: '검색 결과가 없습니다.',
+            unknown_year: '연도 미상',
+        },
+        en: {
+            search_placeholder: 'Search for a movie...',
+            search_btn: 'Search',
+            searching: 'Searching...',
+            no_result: 'No results found.',
+            unknown_year: 'Unknown',
+        },
+        ja: {
+            search_placeholder: '映画のタイトルを入力...',
+            search_btn: '検索',
+            searching: '検索中...',
+            no_result: '結果が見つかりません。',
+            unknown_year: '年不明',
+        }
+    };
+
+    // 저장된 설정 불러오기
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    const savedLang  = localStorage.getItem('lang')  || 'ko';
+    applyTheme(savedTheme, savedLang);
+    applyLang(savedLang);
+
+    function toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme');
+        const newTheme = current === 'dark' ? 'light' : 'dark';
+        applyTheme(newTheme, localStorage.getItem('lang') || 'ko');
+    }
+
+    function applyTheme(theme, lang) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        const l = lang || localStorage.getItem('lang') || 'ko';
+        document.getElementById('themeLabel').textContent =
+            themeLabels[theme][l] || themeLabels[theme]['ko'];
+    }
+
+    function changeLang(lang) {
+        applyLang(lang);
+        applyTheme(localStorage.getItem('theme') || 'dark', lang);
+    }
+
+    function applyLang(lang) {
+        localStorage.setItem('lang', lang);
+        window.currentLang = lang;
+        document.getElementById('langSelect').value = lang;
+        window.UI = uiTexts[lang] || uiTexts['ko'];
+
+        if (document.getElementById('searchInput'))
+            document.getElementById('searchInput').placeholder = window.UI.search_placeholder;
+        if (document.getElementById('searchBtn'))
+            document.getElementById('searchBtn').textContent = window.UI.search_btn;
+    }
+</script>
+
+{% block extra_script %}{% endblock %}
+
+</body>
+</html>
