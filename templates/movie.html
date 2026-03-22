@@ -15,7 +15,10 @@
         font-size: 0.9rem;
         border: 1px solid var(--border);
     }
-    .back-btn:hover { background: var(--bg3); }
+
+    .back-btn:hover {
+        background: var(--bg3);
+    }
 
     .hero {
         display: flex;
@@ -24,27 +27,44 @@
         margin: 0 auto;
         padding: 20px;
     }
-    .poster img { width: 250px; border-radius: 12px; }
-    .info { flex: 1; }
-    .info h1 { font-size: 2rem; margin-bottom: 10px; color: var(--text); transition: opacity .3s; }
+
+    .poster img {
+        width: 250px;
+        border-radius: 12px;
+    }
+
+    .info {
+        flex: 1;
+    }
+
+    .info h1 {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        color: var(--text);
+        transition: opacity .3s;
+    }
+
     .info .meta {
         color: var(--text2);
         font-size: 0.9rem;
         margin-bottom: 16px;
         transition: opacity .3s;
     }
+
     .info .overview {
         line-height: 1.7;
         color: var(--text2);
         margin-bottom: 24px;
         transition: opacity .3s;
     }
+
     .section-title {
         font-size: 1.1rem;
         font-weight: bold;
         margin-bottom: 12px;
         color: var(--accent);
     }
+
     .ott-list {
         display: flex;
         flex-wrap: wrap;
@@ -53,15 +73,29 @@
         min-height: 70px;
         transition: opacity .3s;
     }
+
     .ott-item {
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 6px;
     }
-    .ott-item img { width: 50px; height: 50px; border-radius: 10px; }
-    .ott-item span { font-size: 0.7rem; color: var(--text2); }
-    .no-ott { color: var(--text2); font-size: 0.9rem; }
+
+    .ott-item img {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+    }
+
+    .ott-item span {
+        font-size: 0.7rem;
+        color: var(--text2);
+    }
+
+    .no-ott {
+        color: var(--text2);
+        font-size: 0.9rem;
+    }
 
     .cast-list {
         display: flex;
@@ -71,6 +105,7 @@
         min-height: 100px;
         transition: opacity .3s;
     }
+
     .cast-card {
         background: var(--bg2);
         border-radius: 8px;
@@ -79,6 +114,7 @@
         width: 100px;
         border: 1px solid var(--border);
     }
+
     .cast-card img {
         width: 60px;
         height: 60px;
@@ -86,14 +122,24 @@
         object-fit: cover;
         background: var(--bg3);
     }
-    .cast-card p    { font-size: 0.75rem; margin-top: 6px; color: var(--text); }
-    .cast-card span { font-size: 0.7rem; color: var(--text2); }
+
+    .cast-card p {
+        font-size: 0.75rem;
+        margin-top: 6px;
+        color: var(--text);
+    }
+
+    .cast-card span {
+        font-size: 0.7rem;
+        color: var(--text2);
+    }
 
     .ai-section {
         max-width: 1000px;
         margin: 0 auto 40px;
         padding: 0 20px;
     }
+
     .ai-lang-btn {
         padding: 6px 16px;
         border-radius: 20px;
@@ -103,11 +149,13 @@
         cursor: pointer;
         font-size: 0.85rem;
     }
+
     .ai-lang-btn.active {
         background: var(--accent);
         border-color: var(--accent);
         color: #fff;
     }
+
     .ai-btn {
         padding: 12px 24px;
         background: var(--accent);
@@ -119,8 +167,17 @@
         margin-bottom: 16px;
         display: block;
     }
-    .ai-btn:hover { opacity: .85; }
-    .ai-btn:disabled { background: var(--bg3); color: var(--text2); cursor: not-allowed; }
+
+    .ai-btn:hover {
+        opacity: .85;
+    }
+
+    .ai-btn:disabled {
+        background: var(--bg3);
+        color: var(--text2);
+        cursor: not-allowed;
+    }
+
     .ai-result {
         background: var(--bg2);
         border-radius: 10px;
@@ -138,8 +195,13 @@
     }
 
     @media (max-width: 600px) {
-        .hero { flex-direction: column; }
-        .poster img { width: 100%; }
+        .hero {
+            flex-direction: column;
+        }
+
+        .poster img {
+            width: 100%;
+        }
     }
 </style>
 {% endblock %}
@@ -150,18 +212,31 @@
 <div class="hero">
     <div class="poster" id="posterBox">
         {% if movie.poster_path %}
-            <img id="posterImg"
-                 src="https://image.tmdb.org/t/p/w400{{ movie.poster_path }}"
-                 alt="{{ movie.title }}">
+        <img id="posterImg"
+             src="https://image.tmdb.org/t/p/w400{{ movie.poster_path }}"
+             alt="{{ movie.title }}">
         {% else %}
-            <img id="posterImg"
-                 src="https://via.placeholder.com/250x375?text=No+Image"
-                 alt="포스터 없음">
+        <img id="posterImg"
+             src="https://via.placeholder.com/250x375?text=No+Image"
+             alt="포스터 없음">
         {% endif %}
     </div>
 
     <div class="info">
         <h1 id="movieTitle">{{ movie.title }}</h1>
+        <!-- 좋아요 / 나중에 보기 버튼 -->
+        <div style="display:flex; gap:10px; margin-bottom:16px;">
+            <button id="likeBtn" onclick="toggleLike()"
+                    style="padding:8px 18px; border-radius:20px; border:1px solid var(--border);
+               background:var(--bg2); color:var(--text); cursor:pointer; font-size:0.9rem;">
+                ❤️ 좋아요
+            </button>
+            <button id="watchBtn" onclick="toggleWatch()"
+                    style="padding:8px 18px; border-radius:20px; border:1px solid var(--border);
+               background:var(--bg2); color:var(--text); cursor:pointer; font-size:0.9rem;">
+                🔖 나중에 보기
+            </button>
+        </div>
         <div class="meta" id="movieMeta">
             {{ movie.release_date[:4] if movie.release_date else '연도 미상' }}
             {% if movie.runtime %} · {{ movie.runtime }}분{% endif %}
@@ -174,15 +249,15 @@
         <div class="section-title" id="ottTitle">시청 가능한 플랫폼 (한국)</div>
         <div class="ott-list" id="ottList">
             {% if providers.flatrate %}
-                {% for p in providers.flatrate %}
-                <div class="ott-item">
-                    <img src="https://image.tmdb.org/t/p/w92{{ p.logo_path }}"
-                         alt="{{ p.provider_name }}">
-                    <span>{{ p.provider_name }}</span>
-                </div>
-                {% endfor %}
+            {% for p in providers.flatrate %}
+            <div class="ott-item">
+                <img src="https://image.tmdb.org/t/p/w92{{ p.logo_path }}"
+                     alt="{{ p.provider_name }}">
+                <span>{{ p.provider_name }}</span>
+            </div>
+            {% endfor %}
             {% else %}
-                <p class="no-ott" id="noOtt">현재 한국에서 스트리밍 서비스 없음</p>
+            <p class="no-ott" id="noOtt">현재 한국에서 스트리밍 서비스 없음</p>
             {% endif %}
         </div>
 
@@ -192,11 +267,11 @@
             {% for actor in cast %}
             <div class="cast-card">
                 {% if actor.profile_path %}
-                    <img src="https://image.tmdb.org/t/p/w92{{ actor.profile_path }}"
-                         alt="{{ actor.name }}">
+                <img src="https://image.tmdb.org/t/p/w92{{ actor.profile_path }}"
+                     alt="{{ actor.name }}">
                 {% else %}
-                    <img src="https://via.placeholder.com/60x60?text=?"
-                         alt="사진 없음">
+                <img src="https://via.placeholder.com/60x60?text=?"
+                     alt="사진 없음">
                 {% endif %}
                 <p>{{ actor.name }}</p>
                 <span>{{ actor.character }}</span>
@@ -223,34 +298,34 @@
 <script>
     const movieTexts = {
         ko: {
-            back:      '← 검색으로 돌아가기',
-            ott:       '시청 가능한 플랫폼 (한국)',
-            cast:      '주요 출연진',
-            no_ott:    '현재 한국에서 스트리밍 서비스 없음',
-            ai_btn:    'AI로 분석하기',
+            back: '← 검색으로 돌아가기',
+            ott: '시청 가능한 플랫폼 (한국)',
+            cast: '주요 출연진',
+            no_ott: '현재 한국에서 스트리밍 서비스 없음',
+            ai_btn: 'AI로 분석하기',
             analyzing: '분석 중...',
-            re_analyze:'다시 분석하기',
-            min:       '분',
+            re_analyze: '다시 분석하기',
+            min: '분',
         },
         en: {
-            back:      '← Back to Search',
-            ott:       'Available Platforms (Korea)',
-            cast:      'Main Cast',
-            no_ott:    'No streaming service available in Korea',
-            ai_btn:    'Analyze with AI',
+            back: '← Back to Search',
+            ott: 'Available Platforms (Korea)',
+            cast: 'Main Cast',
+            no_ott: 'No streaming service available in Korea',
+            ai_btn: 'Analyze with AI',
             analyzing: 'Analyzing...',
-            re_analyze:'Analyze Again',
-            min:       'min',
+            re_analyze: 'Analyze Again',
+            min: 'min',
         },
         ja: {
-            back:      '← 検索に戻る',
-            ott:       '視聴可能なプラットフォーム（韓国）',
-            cast:      '主な出演者',
-            no_ott:    '韓国でのストリーミングサービスなし',
-            ai_btn:    'AIで分析する',
+            back: '← 検索に戻る',
+            ott: '視聴可能なプラットフォーム（韓国）',
+            cast: '主な出演者',
+            no_ott: '韓国でのストリーミングサービスなし',
+            ai_btn: 'AIで分析する',
             analyzing: '分析中...',
-            re_analyze:'もう一度分析する',
-            min:       '分',
+            re_analyze: 'もう一度分析する',
+            min: '分',
         }
     };
 
@@ -259,7 +334,7 @@
 
     // 언어 변경 → 리로드 없이 API로 데이터만 교체!
     const _origChangeLang = window.changeLang;
-    window.changeLang = function(lang) {
+    window.changeLang = function (lang) {
         _origChangeLang(lang);
         selectedAILang = lang;
         updateStaticTexts(lang);
@@ -271,8 +346,8 @@
     // 고정 텍스트 (버튼, 제목 라벨 등) 업데이트
     function updateStaticTexts(lang) {
         const t = movieTexts[lang] || movieTexts['ko'];
-        document.getElementById('backBtn').textContent   = t.back;
-        document.getElementById('ottTitle').textContent  = t.ott;
+        document.getElementById('backBtn').textContent = t.back;
+        document.getElementById('ottTitle').textContent = t.ott;
         const castTitle = document.getElementById('castTitle');
         if (castTitle) castTitle.textContent = t.cast;
         const aiBtn = document.getElementById('aiBtn');
@@ -291,23 +366,23 @@
     // TMDB API에서 데이터 받아와서 DOM 교체
     async function fetchMovieData(movieId, lang) {
         // 페이드 아웃
-        ['movieTitle','movieMeta','movieOverview','ottList','castList']
+        ['movieTitle', 'movieMeta', 'movieOverview', 'ottList', 'castList']
             .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.classList.add('loading-overlay');
             });
 
-        const res  = await fetch(`/api/movie/${movieId}?lang=${lang}`);
+        const res = await fetch(`/api/movie/${movieId}?lang=${lang}`);
         const data = await res.json();
-        const t    = movieTexts[lang] || movieTexts['ko'];
+        const t = movieTexts[lang] || movieTexts['ko'];
 
         // 제목
         document.getElementById('movieTitle').textContent = data.title || '';
 
         // 메타
-        const year    = data.release_date?.slice(0,4) || '';
+        const year = data.release_date?.slice(0, 4) || '';
         const runtime = data.runtime ? ` · ${data.runtime}${t.min}` : '';
-        const rating  = data.vote_average
+        const rating = data.vote_average
             ? ` · ⭐ ${Number(data.vote_average).toFixed(1)}` : '';
         document.getElementById('movieMeta').textContent = year + runtime + rating;
 
@@ -341,8 +416,8 @@
             castList.innerHTML = data.cast.map(a => `
                 <div class="cast-card">
                     <img src="${a.profile_path
-                        ? 'https://image.tmdb.org/t/p/w92' + a.profile_path
-                        : 'https://via.placeholder.com/60x60?text=?'}"
+                ? 'https://image.tmdb.org/t/p/w92' + a.profile_path
+                : 'https://via.placeholder.com/60x60?text=?'}"
                          alt="${a.name}">
                     <p>${a.name}</p>
                     <span>${a.character}</span>
@@ -351,7 +426,7 @@
         }
 
         // 페이드 인
-        ['movieTitle','movieMeta','movieOverview','ottList','castList']
+        ['movieTitle', 'movieMeta', 'movieOverview', 'ottList', 'castList']
             .forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.classList.remove('loading-overlay');
@@ -365,28 +440,31 @@
     }
 
     async function getAISummary() {
-        const btn    = document.getElementById('aiBtn');
+        const btn = document.getElementById('aiBtn');
         const result = document.getElementById('aiResult');
         const t = movieTexts[selectedAILang] || movieTexts['ko'];
 
         btn.disabled = true;
-        btn.textContent      = t.analyzing;
+        btn.textContent = t.analyzing;
         result.style.display = 'block';
-        result.textContent   = t.analyzing;
+        result.textContent = t.analyzing;
 
         const res = await fetch('/ai-summary', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                title:    "{{ movie.title }}",
+                title: "{{ movie.title }}",
                 overview: "{{ movie.overview | replace('"', '\\"') | replace('\n', ' ') }}",
-                lang:     selectedAILang
-            })
-        });
+            lang
+    :
+        selectedAILang
+    })
+    })
+        ;
         const data = await res.json();
         result.textContent = data.summary;
-        btn.textContent    = t.re_analyze;
-        btn.disabled       = false;
+        btn.textContent = t.re_analyze;
+        btn.disabled = false;
     }
 
     // 초기 적용
@@ -395,5 +473,61 @@
     selectedAILang = initLang;
     updateStaticTexts(initLang);
     syncAILangBtn(initLang);
+
+    async function toggleLike() {
+        const res = await fetch('/like', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                movie_id: {
+        {
+            movie.id
+        }
+    },
+        movie_title: "{{ movie.title }}",
+            poster_path
+    :
+        "{{ movie.poster_path }}"
+    })
+    })
+        ;
+        const data = await res.json();
+        if (!data.ok) {
+            alert(data.msg);
+            return;
+        }
+        const btn = document.getElementById('likeBtn');
+        btn.textContent = data.liked ? '❤️ 좋아요 취소' : '❤️ 좋아요';
+        btn.style.background = data.liked ? 'var(--accent)' : 'var(--bg2)';
+        btn.style.color = data.liked ? '#fff' : 'var(--text)';
+    }
+
+    async function toggleWatch() {
+        const res = await fetch('/watchlist', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                movie_id: {
+        {
+            movie.id
+        }
+    },
+        movie_title: "{{ movie.title }}",
+            poster_path
+    :
+        "{{ movie.poster_path }}"
+    })
+    })
+        ;
+        const data = await res.json();
+        if (!data.ok) {
+            alert(data.msg);
+            return;
+        }
+        const btn = document.getElementById('watchBtn');
+        btn.textContent = data.saved ? '🔖 저장됨' : '🔖 나중에 보기';
+        btn.style.background = data.saved ? '#185FA5' : 'var(--bg2)';
+        btn.style.color = data.saved ? '#fff' : 'var(--text)';
+    }
 </script>
 {% endblock %}

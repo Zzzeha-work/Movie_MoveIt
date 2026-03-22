@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}로그인 - Movie, MoveIt{% endblock %}
+
+{% block extra_style %}
+<style>
+    .login-wrap {
+        max-width: 420px;
+        margin: 80px auto;
+        padding: 0 20px;
+    }
+    .login-box {
+        background: var(--bg2);
+        border-radius: 16px;
+        padding: 40px;
+        border: 1px solid var(--border);
+    }
+    .login-box h2 {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+        color: var(--text);
+    }
+    .login-box p {
+        color: var(--text2);
+        font-size: 0.9rem;
+        margin-bottom: 28px;
+    }
+    .input-group { margin-bottom: 14px; }
+    .input-group label {
+        display: block;
+        font-size: 0.85rem;
+        color: var(--text2);
+        margin-bottom: 6px;
+    }
+    .input-group input {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        font-size: 1rem;
+    }
+    .btn-main {
+        width: 100%;
+        padding: 13px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        margin-top: 6px;
+    }
+    .btn-main:hover { opacity: .85; }
+    .btn-main:disabled { background: var(--bg3); color: var(--text2); cursor: not-allowed; }
+    .msg {
+        margin-top: 12px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        display: none;
+    }
+    .msg.success { background: #E1F5EE; color: #085041; }
+    .msg.error   { background: #FCEBEB; color: #A32D2D; }
+    .divider {
+        text-align: center;
+        color: var(--text2);
+        font-size: 0.85rem;
+        margin: 16px 0;
+    }
+    #otpSection { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-wrap">
+    <div class="login-box">
+        <h2>🎬 로그인</h2>
+        <p>이메일로 인증번호를 받아 로그인하세요.<br>회원가입이 없어도 자동으로 가입돼요!</p>
+
+        <!-- 이메일 입력 -->
+        <div class="input-group">
+            <label>이메일</label>
+            <input type="email" id="emailInput" placeholder="example@gmail.com" />
+        </div>
+        <button class="btn-main" id="sendBtn" onclick="sendOTP()">
+            인증번호 받기
+        </button>
+
+        <div class="divider" id="divider" style="display:none;">───── 인증번호 입력 ─────</div>
+
+        <!-- OTP 입력 (처음엔 숨김) -->
+        <div id="otpSection">
+            <div class="input-group">
+                <label>인증번호 (6자리)</label>
+                <input type="text" id="otpInput" placeholder="000000"
+                       maxlength="6" style="letter-spacing:6px; font-size:1.3rem; text-align:center;" />
+            </div>
+            <button class="btn-main" id="verifyBtn" onclick="verifyOTP()">
+                로그인
+            </button>
+        </div>
+
+        <div class="msg" id="msgBox"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+    let emailSent = false;
+
+    document.getElementById('otpInput')?.addEventListener('keypress', e => {
+        if (e.key === 'Enter') verifyOTP();
+    });
+
+    async function sendOTP() {
+        const email = document.getElementById('emailInput').value.trim();
+        if (!email) return showMsg('이메일을 입력해주세요.', 'error');
+
+        const btn = document.getElementById('sendBtn');
+        btn.disabled = true;
+        btn.textContent = '발송 중...';
+
+        const res  = await fetch('/send-otp', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email})
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+            showMsg(data.msg, 'success');
+            document.getElementById('otpSection').style.display = 'block';
+            document.getElementById('divider').style.display = 'block';
+            document.getElementById('emailInput').disabled = true;
+            btn.textContent = '재발송';
+            btn.disabled = false;
+            emailSent = true;
+        } else {
+            showMsg(data.msg, 'error');
+            btn.disabled = false;
+            btn.textContent = '인증번호 받기';
+        }
+    }
+
+    async function verifyOTP() {
+        const email = document.getElementById('emailInput').value.trim();
+        const code  = document.getElementById('otpInput').value.trim();
+        if (!code) return showMsg('인증번호를 입력해주세요.', 'error');
+
+        const btn = document.getElementById('verifyBtn');
+        btn.disabled = true;
+        btn.textContent = '확인 중...';
+
+        const res  = await fetch('/verify-otp', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email, code})
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+            showMsg('로그인 성공! 잠시 후 이동합니다.', 'success');
+            setTimeout(() => location.href = '/mypage', 1000);
+        } else {
+            showMsg(data.msg, 'error');
+            btn.disabled = false;
+            btn.textContent = '로그인';
+        }
+    }
+
+    function showMsg(msg, type) {
+        const box = document.getElementById('msgBox');
+        box.textContent = msg;
+        box.className   = `msg ${type}`;
+        box.style.display = 'block';
+    }
+</script>
+{% endblock %}
