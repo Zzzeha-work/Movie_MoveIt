@@ -124,14 +124,32 @@
             <option value="en">🇺🇸 English</option>
             <option value="ja">🇯🇵 日本語</option>
         </select>
+        <!-- 로그인/마이페이지 버튼 -->
+        {% if session.get('user_email') %}
+        <a href="/mypage" style="
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--accent);
+            color: #fff;
+            text-decoration: none;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        ">👤 마이페이지</a>
+        {% else %}
+        <a href="/login" style="
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--bg3);
+            color: var(--text);
+            text-decoration: none;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            ">🔐 로그인</a>
+        {% endif %}
     </div>
 </nav>
-
-<!-- 로그인/마이페이지 버튼 -->
-<a href="/mypage" style="padding:6px 14px; border-radius:20px; border:1px solid var(--border);
-   background:var(--bg3); color:var(--text); text-decoration:none; font-size:0.85rem;">
-    👤 마이페이지
-</a>
 
 {% block content %}{% endblock %}
 
