@@ -31,11 +31,25 @@ init_db()
 # ─── 메인 ─────────────────────────────────────────────────
 @app.route("/")
 def index():
+    """
+    Render the application's main (home) page.
+    
+    Returns:
+        Rendered HTML content for the index (home) page.
+    """
     return render_template("index.html")
 
 # ─── 영화 검색 ────────────────────────────────────────────
 @app.route("/search")
 def search():
+    """
+    Searches TMDB for movies matching the request's "q" query and returns up to 10 matching results.
+    
+    Reads the query string parameter "q" (default empty) and "lang" (defaults to "ko"), maps "lang" through LANG_MAP to choose the TMDB language, performs a TMDB /search/movie request, and returns the first 10 entries from the TMDB "results" array.
+    
+    Returns:
+    	A JSON array of up to 10 movie result objects as returned by TMDB.
+    """
     query     = request.args.get("q", "")
     lang      = request.args.get("lang", "ko")
     tmdb_lang = LANG_MAP.get(lang, "ko-KR")
@@ -50,6 +64,19 @@ def search():
 
 # ─── 영화 상세 공통 함수 ──────────────────────────────────
 def fetch_detail(movie_id, tmdb_lang):
+    """
+    Fetches a movie's full details, Korea-specific watch providers, and up to five cast members from TMDB.
+    
+    Parameters:
+        movie_id (int | str): The TMDB movie identifier.
+        tmdb_lang (str): TMDB language code used for detail and credits requests (e.g., "ko-KR", "en-US").
+    
+    Returns:
+        tuple:
+            detail (dict): Full TMDB movie detail JSON.
+            providers (dict): Korea-specific provider info (contents of `results["KR"]`) or an empty dict if absent.
+            cast (list): Up to five cast member objects (each a dict with cast fields) in billing order.
+    """
     params_lang = {"api_key": TMDB_KEY, "language": tmdb_lang}
     params_base = {"api_key": TMDB_KEY}
 
@@ -69,6 +96,17 @@ def fetch_detail(movie_id, tmdb_lang):
 # ─── 영화 상세 페이지 ─────────────────────────────────────
 @app.route("/movie/<int:movie_id>")
 def movie_detail(movie_id):
+    """
+    Render the movie detail page populated with TMDB data and user-specific status.
+    
+    Fetch movie details, watch providers, and cast from TMDB using the requested language, and render the "movie.html" template including whether the current user has liked or saved the movie and the user's folders when logged in.
+    
+    Parameters:
+        movie_id: The TMDB movie identifier.
+    
+    Returns:
+        A rendered template response for the movie detail page.
+    """
     lang      = request.args.get("lang", "ko")
     tmdb_lang = LANG_MAP.get(lang, "ko-KR")
     detail, providers, cast = fetch_detail(movie_id, tmdb_lang)
@@ -106,6 +144,26 @@ def movie_detail(movie_id):
 # ─── 영화 API (언어 변경용) ───────────────────────────────
 @app.route("/api/movie/<int:movie_id>")
 def movie_api(movie_id):
+    """
+    Provide a JSON response with selected movie details, streaming providers, and up to five cast members for the specified TMDB movie.
+    
+    Parameters:
+        movie_id (int | str): TMDB movie identifier to fetch details for.
+    
+    Returns:
+        response (flask.wrappers.Response): JSON object with keys:
+            - title (str): Movie title.
+            - overview (str): Movie overview/summary.
+            - release_date (str): Release date string.
+            - runtime (int): Runtime in minutes.
+            - vote_average (float): Average user rating.
+            - poster_path (str): Poster image path (TMDB).
+            - providers (list): List of "flatrate" provider entries (empty list if none).
+            - cast (list): Up to five cast member objects, each with:
+                - name (str)
+                - character (str)
+                - profile_path (str)
+    """
     lang      = request.args.get("lang", "ko")
     tmdb_lang = LANG_MAP.get(lang, "ko-KR")
     detail, providers, cast = fetch_detail(movie_id, tmdb_lang)
@@ -131,6 +189,19 @@ def movie_api(movie_id):
 # ─── AI 분석 ──────────────────────────────────────────────
 @app.route("/ai-summary", methods=["POST"])
 def ai_summary():
+    """
+    Generate an AI-written movie summary, three genre keywords, and two similar-movie recommendations in the requested language.
+    
+    Reads JSON from the request body with keys:
+    - `title` (str): movie title used in the prompt.
+    - `overview` (str): movie overview included in the prompt.
+    - `lang` (str, optional): one of "ko", "en", "ja"; falls back to "ko" if missing or unsupported.
+    
+    If the environment variable `GROQ_API_KEY` is set, queries the GROQ chat completion model and returns the model's textual response. If `GROQ_API_KEY` is not set, returns a human-readable message indicating the AI feature is not configured.
+    
+    Returns:
+        dict: JSON-serializable mapping with key `"summary"` containing the AI-generated text or a configuration notice.
+    """
     data     = request.json
     title    = data.get("title", "")
     overview = data.get("overview", "")
@@ -169,6 +240,12 @@ Overview: {overview}""",
 # ─── 로그인 페이지 ────────────────────────────────────────
 @app.route("/login")
 def login():
+    """
+    Render the login page or redirect already authenticated users to their account page.
+    
+    Returns:
+        A Flask response that renders the "login.html" template, or a redirect response to the "mypage" route when a user is already logged in.
+    """
     if session.get("user_email"):
         return redirect(url_for("mypage"))
     return render_template("login.html")
@@ -176,6 +253,20 @@ def login():
 # ─── OTP 발송 ─────────────────────────────────────────────
 @app.route("/send-otp", methods=["POST"])
 def send_otp():
+    """
+    Generate and send a 6-digit one-time password (OTP) to the given email address and store it in the database with a 5-minute expiry.
+    
+    Validates the JSON request's "email" field (non-empty, contains "@"). If valid, deletes any existing OTP for the email, inserts a new OTP record with a 5-minute expiration, attempts to fetch a random popular movie to include as a recommendation in the email, and sends an HTML email containing the OTP (and optional movie recommendation). Returns a JSON response describing success or failure.
+    
+    Returns:
+        dict: A JSON-serializable dict:
+            - {"ok": True, "msg": "인증번호가 발송되었습니다!"} on successful send.
+            - {"ok": False, "msg": "<error message>"} on validation failure or email/send error.
+    
+    Side effects:
+        - Inserts a row into the `otp_codes` table and deletes any prior OTP for the email.
+        - Sends an email via the configured Flask-Mail instance.
+    """
     email = request.json.get("email", "").strip().lower()
     if not email or "@" not in email:
         return jsonify({"ok": False, "msg": "이메일 형식이 올바르지 않습니다."})
@@ -336,6 +427,16 @@ def send_otp():
 # ─── OTP 인증 ─────────────────────────────────────────────
 @app.route("/verify-otp", methods=["POST"])
 def verify_otp():
+    """
+    Verify a submitted one-time password (OTP) for an email address and sign the user in.
+    
+    On success, removes the used OTP, creates the user record if it does not exist, updates the user's last login time, stores the user's email in the session under "user_email", and commits database changes. On failure, no database changes are made and the request is rejected.
+    
+    Returns:
+        A JSON response:
+        - `{"ok": True, "msg": "로그인 성공!"}` when the OTP is valid and login succeeds.
+        - `{"ok": False, "msg": "인증번호가 틀리거나 만료되었습니다."}` when the OTP is missing, incorrect, or expired.
+    """
     email = request.json.get("email", "").strip().lower()
     code  = request.json.get("code", "").strip()
 
@@ -364,12 +465,31 @@ def verify_otp():
 # ─── 로그아웃 ─────────────────────────────────────────────
 @app.route("/logout")
 def logout():
+    """
+    Clear the current user session and redirect the client to the application's index page.
+    
+    Returns:
+        A Flask redirect response to the index (root) route.
+    """
     session.clear()
     return redirect(url_for("index"))
 
 # ─── 좋아요 토글 ──────────────────────────────────────────
 @app.route("/like", methods=["POST"])
 def toggle_like():
+    """
+    Toggle the authenticated user's like status for a movie.
+    
+    If the user is not logged in, returns an error response. Otherwise this endpoint
+    adds or removes a row in the `likes` table for the current user and the given
+    movie, committing the change before returning.
+    
+    Returns:
+    	A JSON object with:
+    	- `ok` (bool): `True` on success, `False` when login is required.
+    	- `liked` (bool, present when `ok` is `True`): `True` if the movie is now liked, `False` if the like was removed.
+    	- `msg` (str, present when `ok` is `False`): error message explaining the failure (e.g., "로그인이 필요합니다.").
+    """
     if not session.get("user_email"):
         return jsonify({"ok": False, "msg": "로그인이 필요합니다."})
 
@@ -403,6 +523,14 @@ def toggle_like():
 # ─── 나중에 보기 토글 ─────────────────────────────────────
 @app.route("/watchlist", methods=["POST"])
 def toggle_watchlist():
+    """
+    Toggle whether the currently logged-in user has the given movie in their watchlist.
+    
+    Reads `movie_id`, `movie_title`, and `poster_path` from the request JSON and checks the user's watchlist in the database. If the movie is present it is removed; if absent it is inserted (using the provided title and poster). Requires an authenticated session.
+    
+    Returns:
+        dict: On success, `{"ok": True, "saved": <bool>}` where `saved` is `True` if the movie was added and `False` if it was removed. If the user is not logged in, returns `{"ok": False, "msg": "로그인이 필요합니다."}`.
+    """
     if not session.get("user_email"):
         return jsonify({"ok": False, "msg": "로그인이 필요합니다."})
 
@@ -436,6 +564,13 @@ def toggle_watchlist():
 # ─── 마이페이지 ───────────────────────────────────────────
 @app.route("/mypage")
 def mypage():
+    """
+    Render the authenticated user's profile page with their saved likes, watchlist, and folders.
+    
+    If there is no logged-in user, redirect to the login page.
+    
+    @returns A Flask response: a redirect to the login page when the user is not authenticated, otherwise the rendered "mypage.html" template with context variables `user`, `likes`, `watchlist`, and `folders`.
+    """
     if not session.get("user_email"):
         return redirect(url_for("login"))
 
@@ -463,6 +598,15 @@ def mypage():
 # ─── 폴더 생성 ────────────────────────────────────────────
 @app.route("/folder/create", methods=["POST"])
 def create_folder():
+    """
+    Create a new folder for the currently logged-in user.
+    
+    Inserts a folder row linked to the authenticated user's account using the `name` field from the JSON request body.
+    
+    Returns:
+        dict: `{'ok': True, 'folder_id': int, 'name': str}` on success.
+        dict: `{'ok': False, 'msg': str}` on failure (e.g., user not logged in or `name` is empty).
+    """
     if not session.get("user_email"):
         return jsonify({"ok": False, "msg": "로그인이 필요합니다."})
 
@@ -483,6 +627,18 @@ def create_folder():
 # ─── 폴더에 영화 추가 ─────────────────────────────────────
 @app.route("/folder/add", methods=["POST"])
 def add_to_folder():
+    """
+    Add a movie to a folder for the currently logged-in user using fields from the request JSON.
+    
+    Expects request JSON to contain:
+        folder_id, movie_id, movie_title, poster_path
+    
+    Returns:
+        dict: JSON response with one of:
+            - {"ok": True} on successful insertion.
+            - {"ok": False, "msg": "로그인이 필요합니다."} if no user is logged in.
+            - {"ok": False, "msg": "이미 추가된 영화입니다."} if the movie could not be added (e.g., duplicate).
+    """
     if not session.get("user_email"):
         return jsonify({"ok": False, "msg": "로그인이 필요합니다."})
 
@@ -507,6 +663,15 @@ def add_to_folder():
 # ─── 폴더 상세 페이지 ─────────────────────────────────────
 @app.route("/folder/<int:folder_id>")
 def folder_detail(folder_id):
+    """
+    Render the folder page for the specified folder, requiring the user to be authenticated.
+    
+    Parameters:
+        folder_id (int): Primary key of the folder to display.
+    
+    Returns:
+        A Flask response: redirects to the login page if the user is not authenticated, otherwise renders the "folder.html" template with `folder` and `items`.
+    """
     if not session.get("user_email"):
         return redirect(url_for("login"))
 

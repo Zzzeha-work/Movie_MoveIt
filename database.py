@@ -1,11 +1,30 @@
 import sqlite3
 
 def get_db():
+    """
+    Open a SQLite connection to the application's database.
+    
+    Returns:
+        conn (sqlite3.Connection): Connection to "movie_moveit.db" with rows represented as sqlite3.Row objects (allowing column access by name).
+    """
     conn = sqlite3.connect("movie_moveit.db")
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
+    """
+    Create the application's SQLite schema if it does not already exist.
+    
+    Creates the following tables and their key columns/constraints:
+    - users: id (PK), email (unique, not null), created_at, last_login
+    - otp_codes: id (PK), email (not null), code (not null), expires_at (not null)
+    - likes: id (PK), user_id (not null), movie_id (not null), movie_title, poster_path, saved_at; UNIQUE(user_id, movie_id)
+    - watchlist: id (PK), user_id (not null), movie_id (not null), movie_title, poster_path, saved_at; UNIQUE(user_id, movie_id)
+    - folders: id (PK), user_id (not null), name (not null), created_at
+    - folder_items: id (PK), folder_id (not null), movie_id (not null), movie_title, poster_path, added_at; UNIQUE(folder_id, movie_id)
+    
+    Commits the schema changes and closes the database connection.
+    """
     conn = get_db()
     cursor = conn.cursor()
 
