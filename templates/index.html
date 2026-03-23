@@ -6,20 +6,29 @@
 <style>
     header {
         text-align: center;
-        padding: 50px 20px 30px;
+        padding: 40px 20px 0;
     }
-    header h1 { font-size: 2.2rem; color: var(--text); }
-    header p  { color: var(--text2); margin-top: 8px; }
 
-    .search-box {
-        display: flex;
-        justify-content: center;
-        margin: 20px auto;
-        max-width: 500px;
-        gap: 10px;
-        padding: 0 20px;
+    header h1 {
+        font-size: 2.2rem;
+        color: var(--text);
     }
-    .search-box input {
+
+    header p {
+        color: var(--text2);
+        margin-top: 8px;
+        margin-bottom: 24px;
+    }
+
+    .search-wrap {
+        max-width: 700px;
+        margin: 0 auto 20px;
+        padding: 0 24px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .search-wrap input {
         flex: 1;
         padding: 12px 16px;
         border-radius: 8px;
@@ -28,7 +37,8 @@
         background: var(--bg2);
         color: var(--text);
     }
-    .search-box button {
+
+    .search-wrap button {
         padding: 12px 20px;
         border-radius: 8px;
         border: none;
@@ -36,17 +46,181 @@
         color: #fff;
         font-size: 1rem;
         cursor: pointer;
+        white-space: nowrap;
     }
-    .search-box button:hover { opacity: .85; }
+
+    .search-wrap button:hover {
+        opacity: .85;
+    }
+
+    .panel-row {
+        max-width: 1100px;
+        margin: 0 auto 28px;
+        padding: 0 24px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .panel-card {
+        background: var(--bg2);
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        padding: 18px;
+    }
+
+    .panel-title {
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--text);
+        margin-bottom: 14px;
+    }
+
+    .quiz-step {
+        display: none;
+    }
+
+    .quiz-step.active {
+        display: block;
+    }
+
+    .quiz-progress {
+        font-size: 0.75rem;
+        color: var(--text2);
+        margin-bottom: 8px;
+    }
+
+    .quiz-question {
+        font-size: 0.88rem;
+        color: var(--text);
+        font-weight: 500;
+        margin-bottom: 12px;
+        line-height: 1.5;
+    }
+
+    .quiz-options {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 7px;
+    }
+
+    .quiz-opt {
+        padding: 9px 6px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 0.78rem;
+        color: var(--text);
+        cursor: pointer;
+        text-align: center;
+        line-height: 1.4;
+        transition: border-color .15s, color .15s;
+    }
+
+    .quiz-opt:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+
+    .quiz-result-box {
+        font-size: 0.82rem;
+        line-height: 1.8;
+        color: var(--text2);
+        white-space: pre-wrap;
+        max-height: 180px;
+        overflow-y: auto;
+    }
+
+    .quiz-restart-btn {
+        width: 100%;
+        padding: 8px;
+        background: var(--bg3);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 0.82rem;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+
+    .quiz-restart-btn:hover {
+        background: var(--bg);
+    }
+
+    .popular-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .popular-item {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        align-items: center;
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 8px;
+        transition: background .15s;
+        border: none;
+        background: transparent;
+        overflow: visible;
+    }
+
+    .popular-item:hover {
+        background: var(--bg3);
+        transform: none;
+    }
+
+    .popular-item img {
+        width: 40px;
+        height: 56px;
+        object-fit: cover;
+        border-radius: 6px;
+        background: var(--bg3);
+        flex-shrink: 0;
+    }
+
+    .popular-item-info {
+        padding: 0;
+        width: auto;
+    }
+
+    .popular-item-info p {
+        font-size: 0.82rem;
+        color: var(--text);
+        margin: 0 0 3px;
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 180px;
+    }
+
+    .popular-item-info span {
+        font-size: 0.75rem;
+        color: var(--text2);
+    }
+
+    .results-wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 24px 24px;
+    }
 
     #results {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 20px;
-        max-width: 1100px;
-        margin: 30px auto;
-        padding: 0 20px;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 16px;
     }
+
+    #loading {
+        text-align: center;
+        color: var(--text2);
+        padding: 40px 0;
+        display: none;
+    }
+
     .card {
         background: var(--bg2);
         border-radius: 10px;
@@ -54,19 +228,52 @@
         cursor: pointer;
         transition: transform .2s;
         border: 1px solid var(--border);
+        position: relative;
     }
-    .card:hover { transform: scale(1.04); }
+
+    .card:hover {
+        transform: scale(1.04);
+    }
+
     .card img {
         width: 100%;
         aspect-ratio: 2/3;
         object-fit: cover;
         background: var(--bg3);
     }
-    .card-info { padding: 10px; }
-    .card-info h3   { font-size: 0.9rem; margin-bottom: 4px; color: var(--text); }
-    .card-info span { font-size: 0.75rem; color: var(--text2); }
 
-    #loading { text-align: center; color: var(--text2); margin-top: 40px; display: none; }
+    .card-info {
+        padding: 10px;
+    }
+
+    .card-info h3 {
+        font-size: 0.85rem;
+        margin-bottom: 4px;
+        color: var(--text);
+    }
+
+    .card-info span {
+        font-size: 0.75rem;
+        color: var(--text2);
+    }
+
+    @media (max-width: 700px) {
+        .panel-row {
+            grid-template-columns: 1fr;
+        }
+
+        .search-wrap {
+            padding: 0 16px;
+        }
+
+        .results-wrap {
+            padding: 0 16px 16px;
+        }
+
+        .panel-row {
+            padding: 0 16px;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -76,13 +283,82 @@
     <p id="headerDesc">영화를 검색하고 OTT 플랫폼을 확인하세요</p>
 </header>
 
-<div class="search-box">
-    <input type="text" id="searchInput" placeholder="영화 제목을 입력하세요..." />
+<div class="search-wrap">
+    <input type="text" id="searchInput" placeholder="영화 제목을 입력하세요..."/>
     <button id="searchBtn" onclick="searchMovies()">검색</button>
 </div>
 
-<div id="loading">검색 중...</div>
-<div id="results"></div>
+<div class="panel-row">
+
+    <!-- 취향 테스트 -->
+    <div class="panel-card">
+        <div class="panel-title" id="quizSideTitle">🎮 취향 테스트</div>
+        <div id="quizSideContainer">
+            <div class="quiz-step active" id="sq1">
+                <div class="quiz-progress">1 / 4</div>
+                <div class="quiz-question">오늘 기분은 어때요?</div>
+                <div class="quiz-options">
+                    <button class="quiz-opt" onclick="sAnswer(1,'신나고 에너지 넘침')">⚡ 신나요!</button>
+                    <button class="quiz-opt" onclick="sAnswer(1,'감성적이고 차분함')">🌙 감성적</button>
+                    <button class="quiz-opt" onclick="sAnswer(1,'긴장되고 스릴 넘침')">😰 긴장돼요</button>
+                    <button class="quiz-opt" onclick="sAnswer(1,'웃고 싶고 가볍게')">😄 웃고싶어</button>
+                </div>
+            </div>
+            <div class="quiz-step" id="sq2">
+                <div class="quiz-progress">2 / 4</div>
+                <div class="quiz-question">선호하는 배경은?</div>
+                <div class="quiz-options">
+                    <button class="quiz-opt" onclick="sAnswer(2,'미래나 우주 SF')">🚀 SF/미래</button>
+                    <button class="quiz-opt" onclick="sAnswer(2,'현실적인 일상')">🏙️ 일상</button>
+                    <button class="quiz-opt" onclick="sAnswer(2,'판타지나 마법 세계')">🧙 판타지</button>
+                    <button class="quiz-opt" onclick="sAnswer(2,'역사나 시대극')">⚔️ 시대극</button>
+                </div>
+            </div>
+            <div class="quiz-step" id="sq3">
+                <div class="quiz-progress">3 / 4</div>
+                <div class="quiz-question">같이 볼 사람은?</div>
+                <div class="quiz-options">
+                    <button class="quiz-opt" onclick="sAnswer(3,'혼자 보기')">🙋 혼자</button>
+                    <button class="quiz-opt" onclick="sAnswer(3,'연인과 함께')">💑 연인</button>
+                    <button class="quiz-opt" onclick="sAnswer(3,'가족과 함께')">👨‍👩‍👧 가족</button>
+                    <button class="quiz-opt" onclick="sAnswer(3,'친구들과 함께')">👫 친구들</button>
+                </div>
+            </div>
+            <div class="quiz-step" id="sq4">
+                <div class="quiz-progress">4 / 4</div>
+                <div class="quiz-question">영화 후 어떤 기분을 원해요?</div>
+                <div class="quiz-options">
+                    <button class="quiz-opt" onclick="sAnswer(4,'감동받고 싶음')">😭 감동</button>
+                    <button class="quiz-opt" onclick="sAnswer(4,'짜릿하고 두근거림')">💥 짜릿함</button>
+                    <button class="quiz-opt" onclick="sAnswer(4,'생각할 거리가 생김')">🧠 사색</button>
+                    <button class="quiz-opt" onclick="sAnswer(4,'기분 좋게 웃음')">😂 유쾌함</button>
+                </div>
+            </div>
+            <div class="quiz-step" id="sqResult">
+                <div class="quiz-progress" id="sqDoneLabel">분석 완료!</div>
+                <div class="quiz-result-box" id="sQuizResult"></div>
+                <button class="quiz-restart-btn" onclick="sRestartQuiz()">
+                    🔄 다시 테스트하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 인기 영화 3개 -->
+    <div class="panel-card">
+        <div class="panel-title" id="popularSideTitle">🔥 지금 인기 영화</div>
+        <div class="popular-list" id="popularList">
+            <p style="color:var(--text2); font-size:0.85rem;">불러오는 중...</p>
+        </div>
+    </div>
+
+</div>
+
+<!-- 검색 결과 -->
+<div class="results-wrap">
+    <div id="loading">검색 중...</div>
+    <div id="results"></div>
+</div>
 {% endblock %}
 
 {% block extra_script %}
@@ -93,20 +369,116 @@
         ja: '映画を検索してOTTプラットフォームを確認しましょう'
     };
 
-    // 언어 변경 시 index 페이지 텍스트 업데이트
-    const _origChangeLang = window.changeLang;
-    window.changeLang = function(lang) {
-        _origChangeLang(lang);
-        document.getElementById('headerDesc').textContent =
-            headerDescs[lang] || headerDescs['ko'];
+    const sideTexts = {
+        ko: {
+            quiz_title: '🎮 취향 테스트',
+            popular_title: '🔥 지금 인기 영화',
+            quiz_done: '분석 완료!',
+            quiz_restart: '🔄 다시 테스트하기',
+            quiz_loading: 'AI가 분석 중입니다...',
+            questions: [
+                {
+                    q: '오늘 기분은 어때요?',
+                    opts: ['⚡ 신나요!', '🌙 감성적', '😰 긴장돼요', '😄 웃고싶어'],
+                    vals: ['신나고 에너지 넘침', '감성적이고 차분함', '긴장되고 스릴 넘침', '웃고 싶고 가볍게']
+                },
+                {
+                    q: '선호하는 배경은?',
+                    opts: ['🚀 SF/미래', '🏙️ 일상', '🧙 판타지', '⚔️ 시대극'],
+                    vals: ['미래나 우주 SF', '현실적인 일상', '판타지나 마법 세계', '역사나 시대극']
+                },
+                {
+                    q: '같이 볼 사람은?',
+                    opts: ['🙋 혼자', '💑 연인', '👨‍👩‍👧 가족', '👫 친구들'],
+                    vals: ['혼자 보기', '연인과 함께', '가족과 함께', '친구들과 함께']
+                },
+                {
+                    q: '영화 후 어떤 기분을 원해요?',
+                    opts: ['😭 감동', '💥 짜릿함', '🧠 사색', '😂 유쾌함'],
+                    vals: ['감동받고 싶음', '짜릿하고 두근거림', '생각할 거리가 생김', '기분 좋게 웃음']
+                },
+            ]
+        },
+        en: {
+            quiz_title: '🎮 Taste Test',
+            popular_title: '🔥 Popular Now',
+            quiz_done: 'Analysis complete!',
+            quiz_restart: '🔄 Restart Test',
+            quiz_loading: 'AI is analyzing...',
+            questions: [
+                {
+                    q: 'How are you feeling today?',
+                    opts: ['⚡ Energetic!', '🌙 Calm', '😰 Tense', '😄 Cheerful'],
+                    vals: ['energetic and excited', 'emotional and calm', 'tense and thrilling', 'light and fun']
+                },
+                {
+                    q: 'Preferred setting?',
+                    opts: ['🚀 Sci-Fi', '🏙️ Everyday', '🧙 Fantasy', '⚔️ Historical'],
+                    vals: ['sci-fi or space', 'realistic everyday life', 'fantasy or magic', 'historical drama']
+                },
+                {
+                    q: 'Watching with?',
+                    opts: ['🙋 Alone', '💑 Partner', '👨‍👩‍👧 Family', '👫 Friends'],
+                    vals: ['alone', 'with partner', 'with family', 'with friends']
+                },
+                {
+                    q: 'How do you want to feel after?',
+                    opts: ['😭 Moved', '💥 Thrilled', '🧠 Thoughtful', '😂 Amused'],
+                    vals: ['deeply moved', 'thrilled and excited', 'something to think about', 'happily amused']
+                },
+            ]
+        },
+        ja: {
+            quiz_title: '🎮 好みテスト',
+            popular_title: '🔥 今人気の映画',
+            quiz_done: '分析完了！',
+            quiz_restart: '🔄 もう一度テストする',
+            quiz_loading: 'AIが分析中です...',
+            questions: [
+                {
+                    q: '今日の気分は？',
+                    opts: ['⚡ 元気！', '🌙 感性的', '😰 緊張', '😄 笑いたい'],
+                    vals: ['元気でエネルギッシュ', '感性的で落ち着いた', '緊張してスリル', '笑いたく軽く']
+                },
+                {
+                    q: '好みの舞台は？',
+                    opts: ['🚀 SF', '🏙️ 日常', '🧙 ファンタジー', '⚔️ 時代劇'],
+                    vals: ['未来や宇宙SF', 'リアルな日常', 'ファンタジーや魔法', '歴史や時代劇']
+                },
+                {
+                    q: '一緒に見る人は？',
+                    opts: ['🙋 一人', '💑 恋人', '👨‍👩‍👧 家族', '👫 友達'],
+                    vals: ['一人で見る', '恋人と一緒', '家族と一緒', '友達と一緒']
+                },
+                {
+                    q: '映画後にどんな気分を望む？',
+                    opts: ['😭 感動', '💥 スリル', '🧠 思索', '😂 愉快'],
+                    vals: ['感動したい', 'スリルと胸躍る', '考えるきっかけ', '楽しく笑える']
+                },
+            ]
+        }
     };
 
-    // 초기 headerDesc 적용
+    let currentSideLang = localStorage.getItem('lang') || 'ko';
+    const sQuizAnswers = {};
+
+    const _origChangeLang = window.changeLang;
+    window.changeLang = function (lang) {
+        _origChangeLang(lang);
+        currentSideLang = lang;
+        const t = sideTexts[lang] || sideTexts['ko'];
+        document.getElementById('headerDesc').textContent =
+            headerDescs[lang] || headerDescs['ko'];
+        document.getElementById('quizSideTitle').textContent = t.quiz_title;
+        document.getElementById('popularSideTitle').textContent = t.popular_title;
+        rebuildSideQuiz(lang);
+        loadPopular(lang);
+    };
+
     document.getElementById('headerDesc').textContent =
         headerDescs[localStorage.getItem('lang') || 'ko'];
 
-    // 엔터키 검색
-    document.getElementById('searchInput').addEventListener('keypress', function(e) {
+    document.getElementById('searchInput').addEventListener('keypress', e => {
         if (e.key === 'Enter') searchMovies();
     });
 
@@ -119,35 +491,149 @@
 
         const lang = localStorage.getItem('lang') || 'ko';
         const res = await fetch(`/search?q=${encodeURIComponent(query)}&lang=${lang}`);
-        const movies = await res.json();
+        const data = await res.json();
 
         document.getElementById('loading').style.display = 'none';
 
-        if (movies.length === 0) {
+        const movies = data.movies || [];
+        const personMovies = data.person_movies || [];
+
+        if (movies.length === 0 && personMovies.length === 0) {
             document.getElementById('results').innerHTML =
-                `<p style="color:var(--text2);text-align:center;">
-                    ${window.UI?.no_result || '검색 결과가 없습니다.'}
-                </p>`;
+                `<p style="color:var(--text2); text-align:center;">
+                ${window.UI?.no_result || '검색 결과가 없습니다.'}
+            </p>`;
             return;
         }
 
-        movies.forEach(movie => {
-            const poster = movie.poster_path
-                ? `https://image.tmdb.org/t/p/w300${movie.poster_path}`
-                : 'https://via.placeholder.com/300x450?text=No+Image';
-            const year = movie.release_date?.slice(0,4) || window.UI?.unknown_year || '연도 미상';
-            const lang = localStorage.getItem('lang') || 'ko';
-
-            document.getElementById('results').innerHTML += `
-                <div class="card" onclick="location.href='/movie/${movie.id}?lang=${lang}'">
-                    <img src="${poster}" alt="${movie.title}">
-                    <div class="card-info">
-                        <h3>${movie.title}</h3>
-                        <span>${year}</span>
-                    </div>
-                </div>
-            `;
+        let html = '';
+        movies.forEach(m => {
+            html += makeCard(m, lang);
         });
+
+        if (personMovies.length > 0) {
+            html += `
+            <div style="grid-column:1/-1; margin-top:16px;
+                        padding-top:16px; border-top:1px solid var(--border);">
+                <p style="color:var(--text2); font-size:0.82rem; margin-bottom:10px;">
+                    🎬 감독 / 배우 관련 영화
+                </p>
+            </div>`;
+            personMovies.forEach(m => {
+                html += makeCard(m, lang, m.matched_person, m.matched_role);
+            });
+        }
+
+        document.getElementById('results').innerHTML = html;
     }
+
+    function makeCard(movie, lang, personName, personRole) {
+        const poster = movie.poster_path
+            ? `https://image.tmdb.org/t/p/w300${movie.poster_path}`
+            : 'https://via.placeholder.com/300x450?text=No+Image';
+        const year = movie.release_date?.slice(0, 4) || window.UI?.unknown_year || '연도 미상';
+        const badge = personName
+            ? `<div style="position:absolute;top:6px;left:6px;
+                       background:rgba(0,0,0,0.75);color:#fff;
+                       font-size:10px;padding:2px 6px;border-radius:10px;">
+               ${personRole === 'Directing' ? '🎬' : '🎭'} ${personName}
+           </div>` : '';
+        return `
+        <div class="card" onclick="location.href='/movie/${movie.id}?lang=${lang}'">
+            ${badge}
+            <img src="${poster}" alt="${movie.title}" loading="lazy">
+            <div class="card-info">
+                <h3>${movie.title}</h3>
+                <span>${year}</span>
+            </div>
+        </div>`;
+    }
+
+    async function loadPopular(lang) {
+        const res = await fetch(`/popular?lang=${lang || currentSideLang}`);
+        const data = await res.json();
+        const list = document.getElementById('popularList');
+        if (!data.movies || data.movies.length === 0) {
+            list.innerHTML = '<p style="color:var(--text2);font-size:0.85rem;">불러오기 실패</p>';
+            return;
+        }
+        list.innerHTML = data.movies.slice(0, 4).map(m => `
+    <div class="popular-item"
+         onclick="location.href='/movie/${m.id}?lang=${lang || currentSideLang}'">
+        <img src="${m.poster_path
+            ? 'https://image.tmdb.org/t/p/w185' + m.poster_path
+            : 'https://via.placeholder.com/185x278?text=?'}"
+             alt="${m.title}" loading="lazy">
+        <div class="popular-item-info">
+            <p>${m.title}</p>
+            <span>${m.release_date?.slice(0, 4) || ''} · ⭐ ${Number(m.vote_average).toFixed(1)}</span>
+        </div>
+    </div>
+`).join('');
+    }
+
+    function rebuildSideQuiz(lang) {
+        const t = sideTexts[lang] || sideTexts['ko'];
+        Object.keys(sQuizAnswers).forEach(k => delete sQuizAnswers[k]);
+        const container = document.getElementById('quizSideContainer');
+        let html = '';
+        t.questions.forEach((q, i) => {
+            const step = i + 1;
+            html += `
+            <div class="quiz-step ${step === 1 ? 'active' : ''}" id="sq${step}">
+                <div class="quiz-progress">${step} / ${t.questions.length}</div>
+                <div class="quiz-question">${q.q}</div>
+                <div class="quiz-options">
+                    ${q.opts.map((opt, j) => `
+                        <button class="quiz-opt"
+                            onclick="sAnswer(${step}, '${q.vals[j]}')">
+                            ${opt}
+                        </button>`).join('')}
+                </div>
+            </div>`;
+        });
+        html += `
+        <div class="quiz-step" id="sqResult">
+            <div class="quiz-progress">${t.quiz_done}</div>
+            <div class="quiz-result-box" id="sQuizResult"></div>
+            <button class="quiz-restart-btn" onclick="sRestartQuiz()">
+                ${t.quiz_restart}
+            </button>
+        </div>`;
+        container.innerHTML = html;
+    }
+
+    function sAnswer(step, value) {
+        sQuizAnswers[step] = value;
+        document.getElementById(`sq${step}`).classList.remove('active');
+        const next = document.getElementById(`sq${step + 1}`);
+        if (next) {
+            next.classList.add('active');
+        } else {
+            document.getElementById('sqResult').classList.add('active');
+            runSideQuiz();
+        }
+    }
+
+    async function runSideQuiz() {
+        const t = sideTexts[currentSideLang] || sideTexts['ko'];
+        const result = document.getElementById('sQuizResult');
+        result.textContent = t.quiz_loading;
+        const res = await fetch('/ai-quiz', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({answers: sQuizAnswers, lang: currentSideLang})
+        });
+        const data = await res.json();
+        result.textContent = data.result;
+    }
+
+    function sRestartQuiz() {
+        rebuildSideQuiz(currentSideLang);
+    }
+
+    const initLang = localStorage.getItem('lang') || 'ko';
+    currentSideLang = initLang;
+    loadPopular(initLang);
 </script>
 {% endblock %}

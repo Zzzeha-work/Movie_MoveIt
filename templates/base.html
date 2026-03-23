@@ -203,11 +203,6 @@
             themeLabels[theme][l] || themeLabels[theme]['ko'];
     }
 
-    function changeLang(lang) {
-        applyLang(lang);
-        applyTheme(localStorage.getItem('theme') || 'dark', lang);
-    }
-
     function applyLang(lang) {
         localStorage.setItem('lang', lang);
         window.currentLang = lang;
@@ -218,6 +213,18 @@
             document.getElementById('searchInput').placeholder = window.UI.search_placeholder;
         if (document.getElementById('searchBtn'))
             document.getElementById('searchBtn').textContent = window.UI.search_btn;
+    }
+
+    function changeLang(lang) {
+        applyLang(lang);
+        applyTheme(localStorage.getItem('theme') || 'dark', lang);
+
+        // 페이지별 처리
+        const path = window.location.pathname;
+        if (path === '/mypage') {
+            // 마이페이지는 리로드
+            window.location.href = `/mypage?lang=${lang}`;
+        }
     }
 </script>
 
