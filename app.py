@@ -7,15 +7,16 @@ import random
 import string
 import requests
 import os
+import threading
 from datetime import datetime, timedelta
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "moviemoveit2025")
-TMDB_KEY = os.getenv("TMDB_API_KEY")
+TMDB_KEY  = os.getenv("TMDB_API_KEY")
 TMDB_BASE = "https://api.themoviedb.org/3"
-LANG_MAP = {"ko": "ko-KR", "en": "en-US", "ja": "ja-JP"}
+LANG_MAP  = {"ko": "ko-KR", "en": "en-US", "ja": "ja-JP"}
 
 # 이메일 설정
 app.config['MAIL_SERVER']         = 'smtp.gmail.com'
@@ -25,7 +26,7 @@ app.config['MAIL_USE_SSL']        = False
 app.config['MAIL_USERNAME']       = os.getenv("MAIL_USERNAME")
 app.config['MAIL_PASSWORD']       = os.getenv("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_USERNAME")
-app.config['MAIL_TIMEOUT']        = 10
+app.config['MAIL_TIMEOUT']        = 30
 mail = Mail(app)
 
 # DB 초기화
@@ -41,41 +42,37 @@ def index():
 # ─── 영화 검색 ────────────────────────────────────────────
 @app.route("/search")
 def search():
-    query = request.args.get("q", "")
-    lang = request.args.get("lang", "ko")
+    query     = request.args.get("q", "")
+    lang      = request.args.get("lang", "ko")
     tmdb_lang = LANG_MAP.get(lang, "ko-KR")
 
-    # 영화 제목 검색
     movie_res = requests.get(f"{TMDB_BASE}/search/movie", params={
-        "api_key": TMDB_KEY,
-        "query": query,
+        "api_key":  TMDB_KEY,
+        "query":    query,
         "language": tmdb_lang
     })
     movies = movie_res.json().get("results", [])
 
-    # 감독/배우 이름 검색
     person_res = requests.get(f"{TMDB_BASE}/search/person", params={
-        "api_key": TMDB_KEY,
-        "query": query,
+        "api_key":  TMDB_KEY,
+        "query":    query,
         "language": tmdb_lang
     })
     persons = person_res.json().get("results", [])
 
-    # 감독/배우가 참여한 영화 추출
     person_movies = []
-    for person in persons[:3]:  # 상위 3명만
+    for person in persons[:3]:
         for credit in person.get("known_for", []):
             if credit.get("media_type") == "movie":
                 credit["matched_person"] = person.get("name", "")
-                credit["matched_role"] = person.get("known_for_department", "")
+                credit["matched_role"]   = person.get("known_for_department", "")
                 person_movies.append(credit)
 
-    # 중복 제거 (영화 제목 검색 결과와 겹치는 것 제거)
-    movie_ids = {m["id"] for m in movies}
+    movie_ids     = {m["id"] for m in movies}
     person_movies = [m for m in person_movies if m["id"] not in movie_ids]
 
     return jsonify({
-        "movies": movies[:10],
+        "movies":        movies[:10],
         "person_movies": person_movies[:6],
     })
 
@@ -87,36 +84,35 @@ def fetch_detail(movie_id, tmdb_lang):
 
     with ThreadPoolExecutor() as executor:
         f1 = executor.submit(requests.get,
-                             f"{TMDB_BASE}/movie/{movie_id}", params=params_lang)
+             f"{TMDB_BASE}/movie/{movie_id}", params=params_lang)
         f2 = executor.submit(requests.get,
-                             f"{TMDB_BASE}/movie/{movie_id}/watch/providers", params=params_base)
+             f"{TMDB_BASE}/movie/{movie_id}/watch/providers", params=params_base)
         f3 = executor.submit(requests.get,
-                             f"{TMDB_BASE}/movie/{movie_id}/credits", params=params_lang)
+             f"{TMDB_BASE}/movie/{movie_id}/credits", params=params_lang)
 
-    detail = f1.result().json()
+    detail    = f1.result().json()
     providers = f2.result().json().get("results", {}).get("KR", {})
-    cast = f3.result().json().get("cast", [])[:5]
+    cast      = f3.result().json().get("cast", [])[:5]
     return detail, providers, cast
 
 
 # ─── 영화 상세 페이지 ─────────────────────────────────────
 @app.route("/movie/<int:movie_id>")
 def movie_detail(movie_id):
-    lang = request.args.get("lang", "ko")
+    lang      = request.args.get("lang", "ko")
     tmdb_lang = LANG_MAP.get(lang, "ko-KR")
     detail, providers, cast = fetch_detail(movie_id, tmdb_lang)
 
-    # 로그인 상태면 좋아요/나중에보기 여부 확인
-    liked = False
-    watched = False
+    liked        = False
+    watched      = False
     user_folders = []
     if session.get("user_email"):
-        db = get_db()
+        db   = get_db()
         user = db.execute("SELECT id FROM users WHERE email = ?",
                           (session["user_email"],)).fetchone()
         if user:
             user_id = user["id"]
-            liked = bool(db.execute(
+            liked   = bool(db.execute(
                 "SELECT id FROM likes WHERE user_id=? AND movie_id=?",
                 (user_id, movie_id)).fetchone())
             watched = bool(db.execute(
@@ -140,22 +136,22 @@ def movie_detail(movie_id):
 # ─── 영화 API (언어 변경용) ───────────────────────────────
 @app.route("/api/movie/<int:movie_id>")
 def movie_api(movie_id):
-    lang = request.args.get("lang", "ko")
+    lang      = request.args.get("lang", "ko")
     tmdb_lang = LANG_MAP.get(lang, "ko-KR")
     detail, providers, cast = fetch_detail(movie_id, tmdb_lang)
 
     return jsonify({
-        "title": detail.get("title", ""),
-        "overview": detail.get("overview", ""),
+        "title":        detail.get("title", ""),
+        "overview":     detail.get("overview", ""),
         "release_date": detail.get("release_date", ""),
-        "runtime": detail.get("runtime", 0),
+        "runtime":      detail.get("runtime", 0),
         "vote_average": detail.get("vote_average", 0),
-        "poster_path": detail.get("poster_path", ""),
-        "providers": providers.get("flatrate", []),
+        "poster_path":  detail.get("poster_path", ""),
+        "providers":    providers.get("flatrate", []),
         "cast": [
             {
-                "name": c.get("name", ""),
-                "character": c.get("character", ""),
+                "name":         c.get("name", ""),
+                "character":    c.get("character", ""),
                 "profile_path": c.get("profile_path", "")
             }
             for c in cast
@@ -166,10 +162,10 @@ def movie_api(movie_id):
 # ─── AI 분석 ──────────────────────────────────────────────
 @app.route("/ai-summary", methods=["POST"])
 def ai_summary():
-    data = request.json
-    title = data.get("title", "")
+    data     = request.json
+    title    = data.get("title", "")
     overview = data.get("overview", "")
-    lang = data.get("lang", "ko")
+    lang     = data.get("lang", "ko")
 
     prompts = {
         "ko": f"""영화 '{title}'에 대해 한국어로 작성해주세요:
@@ -192,7 +188,7 @@ Overview: {overview}""",
     groq_key = os.getenv("GROQ_API_KEY")
     if groq_key:
         from groq import Groq
-        client = Groq(api_key=groq_key)
+        client  = Groq(api_key=groq_key)
         message = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             max_tokens=500,
@@ -218,7 +214,7 @@ def send_otp():
     if not email or "@" not in email:
         return jsonify({"ok": False, "msg": "이메일 형식이 올바르지 않습니다."})
 
-    code = ''.join(random.choices(string.digits, k=6))
+    code       = ''.join(random.choices(string.digits, k=6))
     expires_at = datetime.now() + timedelta(minutes=5)
 
     db = get_db()
@@ -231,19 +227,18 @@ def send_otp():
     # 랜덤 추천 영화 가져오기
     try:
         popular = requests.get(f"{TMDB_BASE}/movie/popular", params={
-            "api_key": TMDB_KEY,
+            "api_key":  TMDB_KEY,
             "language": "ko-KR",
-            "page": 1
+            "page":     1
         }).json().get("results", [])
         pick = random.choice(popular[:10]) if popular else None
     except:
         pick = None
 
-    # 추천 영화 HTML 섹션
     movie_section = ""
     if pick:
         poster_url = f"https://image.tmdb.org/t/p/w300{pick['poster_path']}" \
-            if pick.get("poster_path") else ""
+                     if pick.get("poster_path") else ""
         movie_section = f"""
         <tr>
           <td style="padding:0 32px 32px;">
@@ -252,18 +247,15 @@ def send_otp():
               <tr>
                 <td>
                   <p style="color:#888; font-size:11px; text-transform:uppercase;
-                             letter-spacing:1px; margin:0 0 14px;">
-                    오늘의 추천 영화
-                  </p>
+                             letter-spacing:1px; margin:0 0 14px;">오늘의 추천 영화</p>
                   <table cellpadding="0" cellspacing="0">
                     <tr>
                       {"<td style='padding-right:14px; vertical-align:top;'><img src='" + poster_url + "' width='70' style='border-radius:6px; display:block;'></td>" if poster_url else ""}
                       <td style="vertical-align:top;">
-                        <p style="color:#fff; font-size:14px; font-weight:600;
-                                   margin:0 0 5px;">{pick.get('title', '')}</p>
+                        <p style="color:#fff; font-size:14px; font-weight:600; margin:0 0 5px;">
+                            {pick.get('title', '')}</p>
                         <p style="color:#888; font-size:12px; margin:0 0 8px;">
-                          {str(pick.get('release_date', ''))[:4]}
-                          &nbsp;·&nbsp;
+                          {str(pick.get('release_date',''))[:4]} &nbsp;·&nbsp;
                           ⭐ {round(pick.get('vote_average', 0), 1)}
                         </p>
                         <p style="color:#aaa; font-size:12px; line-height:1.6; margin:0;">
@@ -276,16 +268,10 @@ def send_otp():
               </tr>
             </table>
           </td>
-        </tr>
-        """
+        </tr>"""
 
-    try:
-        msg = Message(
-            subject="[Movie, MoveIt] 인증번호",
-            sender=os.getenv("MAIL_USERNAME"),
-            recipients=[email]
-        )
-        msg.html = f"""<!DOCTYPE html>
+    # 이메일 HTML
+    html_content = f"""<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
@@ -300,29 +286,18 @@ def send_otp():
         <table width="520" cellpadding="0" cellspacing="0"
                style="background:#141414; border-radius:16px;
                       border:1px solid #2a2a2a; overflow:hidden;">
-
-          <!-- 헤더 -->
           <tr>
             <td style="background:#e50914; padding:20px 32px;">
               <p style="margin:0; color:#fff; font-size:20px;
-                         font-weight:700; letter-spacing:1px;">
-                🎬 Movie, MoveIt
-              </p>
+                         font-weight:700; letter-spacing:1px;">🎬 Movie, MoveIt</p>
               <p style="margin:4px 0 0; color:rgba(255,255,255,0.7); font-size:12px;">
-                영화를 발견하고, 움직이세요
-              </p>
+                영화를 발견하고, 움직이세요</p>
             </td>
           </tr>
-
-          <!-- 본문 -->
           <tr>
             <td style="padding:32px 32px 24px;">
               <p style="color:#ccc; font-size:15px; line-height:1.6; margin:0 0 24px;">
-                안녕하세요!<br>
-                아래 인증번호를 입력해 로그인을 완료하세요.
-              </p>
-
-              <!-- 인증번호 박스 -->
+                안녕하세요!<br>아래 인증번호를 입력해 로그인을 완료하세요.</p>
               <table width="100%" cellpadding="0" cellspacing="0"
                      style="background:#1e1e1e; border:1px solid #333;
                             border-radius:12px; margin-bottom:20px;">
@@ -331,54 +306,57 @@ def send_otp():
                     <p style="color:#888; font-size:12px; text-transform:uppercase;
                                letter-spacing:2px; margin:0 0 12px;">인증번호</p>
                     <p style="color:#e50914; font-size:42px; font-weight:800;
-                               letter-spacing:10px; margin:0;">
-                      {code}
-                    </p>
+                               letter-spacing:10px; margin:0;">{code}</p>
                     <p style="color:#666; font-size:12px; margin:12px 0 0;">
-                      ⏱ 5분 이내에 입력해주세요
-                    </p>
+                      ⏱ 5분 이내에 입력해주세요</p>
                   </td>
                 </tr>
               </table>
-
               <p style="color:#666; font-size:12px; line-height:1.7; margin:0;">
                 본인이 요청하지 않은 경우 이 메일을 무시하세요.<br>
-                계정은 자동으로 보호됩니다.
-              </p>
+                계정은 자동으로 보호됩니다.</p>
             </td>
           </tr>
-
-          <!-- 추천 영화 -->
           {movie_section}
-
-          <!-- 푸터 -->
           <tr>
             <td style="padding:16px 32px; border-top:1px solid #2a2a2a;">
               <p style="color:#555; font-size:11px; margin:0; text-align:center;">
-                © 2025 Movie, MoveIt &nbsp;·&nbsp; 이 메일은 자동 발송되었습니다.
-              </p>
+                © 2025 Movie, MoveIt &nbsp;·&nbsp; 이 메일은 자동 발송되었습니다.</p>
             </td>
           </tr>
-
         </table>
       </td>
     </tr>
   </table>
 </body>
 </html>"""
-        mail.send(msg)
-        return jsonify({"ok": True, "msg": "인증번호가 발송되었습니다!"})
-    except Exception as e:
-        return jsonify({"ok": False, "msg": f"이메일 발송 실패: {str(e)}"})
+
+    # 비동기 이메일 발송
+    def send_mail_async():
+        with app.app_context():
+            try:
+                msg        = Message(
+                    subject="[Movie, MoveIt] 인증번호",
+                    sender=os.getenv("MAIL_USERNAME"),
+                    recipients=[email]
+                )
+                msg.html   = html_content
+                mail.send(msg)
+                print(f"Mail sent to {email}")
+            except Exception as e:
+                print(f"Mail error: {e}")
+
+    threading.Thread(target=send_mail_async).start()
+    return jsonify({"ok": True, "msg": "인증번호가 발송되었습니다!"})
 
 
 # ─── OTP 인증 ─────────────────────────────────────────────
 @app.route("/verify-otp", methods=["POST"])
 def verify_otp():
     email = request.json.get("email", "").strip().lower()
-    code = request.json.get("code", "").strip()
+    code  = request.json.get("code", "").strip()
 
-    db = get_db()
+    db  = get_db()
     row = db.execute(
         "SELECT * FROM otp_codes WHERE email=? AND code=? AND expires_at>?",
         (email, code, datetime.now())
@@ -414,16 +392,16 @@ def toggle_like():
     if not session.get("user_email"):
         return jsonify({"ok": False, "msg": "로그인이 필요합니다."})
 
-    data = request.json
-    movie_id = data.get("movie_id")
+    data        = request.json
+    movie_id    = data.get("movie_id")
     movie_title = data.get("movie_title")
     poster_path = data.get("poster_path")
 
-    db = get_db()
-    user = db.execute("SELECT id FROM users WHERE email=?",
-                      (session["user_email"],)).fetchone()
+    db      = get_db()
+    user    = db.execute("SELECT id FROM users WHERE email=?",
+                         (session["user_email"],)).fetchone()
     user_id = user["id"]
-    exists = db.execute(
+    exists  = db.execute(
         "SELECT id FROM likes WHERE user_id=? AND movie_id=?",
         (user_id, movie_id)).fetchone()
 
@@ -448,16 +426,16 @@ def toggle_watchlist():
     if not session.get("user_email"):
         return jsonify({"ok": False, "msg": "로그인이 필요합니다."})
 
-    data = request.json
-    movie_id = data.get("movie_id")
+    data        = request.json
+    movie_id    = data.get("movie_id")
     movie_title = data.get("movie_title")
     poster_path = data.get("poster_path")
 
-    db = get_db()
-    user = db.execute("SELECT id FROM users WHERE email=?",
-                      (session["user_email"],)).fetchone()
+    db      = get_db()
+    user    = db.execute("SELECT id FROM users WHERE email=?",
+                         (session["user_email"],)).fetchone()
     user_id = user["id"]
-    exists = db.execute(
+    exists  = db.execute(
         "SELECT id FROM watchlist WHERE user_id=? AND movie_id=?",
         (user_id, movie_id)).fetchone()
 
@@ -482,19 +460,19 @@ def mypage():
     if not session.get("user_email"):
         return redirect(url_for("login"))
 
-    lang = request.args.get("lang", "ko")  # ← 추가
+    lang = request.args.get("lang", "ko")
 
-    db = get_db()
-    user = db.execute("SELECT * FROM users WHERE email=?",
-                      (session["user_email"],)).fetchone()
-    user_id = user["id"]
-    likes = db.execute(
+    db        = get_db()
+    user      = db.execute("SELECT * FROM users WHERE email=?",
+                           (session["user_email"],)).fetchone()
+    user_id   = user["id"]
+    likes     = db.execute(
         "SELECT * FROM likes WHERE user_id=? ORDER BY saved_at DESC",
         (user_id,)).fetchall()
     watchlist = db.execute(
         "SELECT * FROM watchlist WHERE user_id=? ORDER BY saved_at DESC",
         (user_id,)).fetchall()
-    folders = db.execute(
+    folders   = db.execute(
         "SELECT * FROM folders WHERE user_id=? ORDER BY created_at DESC",
         (user_id,)).fetchall()
     db.close()
@@ -504,7 +482,7 @@ def mypage():
                            likes=likes,
                            watchlist=watchlist,
                            folders=folders,
-                           current_lang=lang)  # ← 추가
+                           current_lang=lang)
 
 
 # ─── 폴더 생성 ────────────────────────────────────────────
@@ -517,7 +495,7 @@ def create_folder():
     if not name:
         return jsonify({"ok": False, "msg": "폴더 이름을 입력해주세요."})
 
-    db = get_db()
+    db   = get_db()
     user = db.execute("SELECT id FROM users WHERE email=?",
                       (session["user_email"],)).fetchone()
     db.execute("INSERT INTO folders (user_id, name) VALUES (?,?)",
@@ -534,9 +512,9 @@ def add_to_folder():
     if not session.get("user_email"):
         return jsonify({"ok": False, "msg": "로그인이 필요합니다."})
 
-    data = request.json
-    folder_id = data.get("folder_id")
-    movie_id = data.get("movie_id")
+    data        = request.json
+    folder_id   = data.get("folder_id")
+    movie_id    = data.get("movie_id")
     movie_title = data.get("movie_title")
     poster_path = data.get("poster_path")
 
@@ -559,10 +537,10 @@ def folder_detail(folder_id):
     if not session.get("user_email"):
         return redirect(url_for("login"))
 
-    db = get_db()
+    db     = get_db()
     folder = db.execute("SELECT * FROM folders WHERE id=?",
                         (folder_id,)).fetchone()
-    items = db.execute(
+    items  = db.execute(
         "SELECT * FROM folder_items WHERE folder_id=? ORDER BY added_at DESC",
         (folder_id,)).fetchall()
     db.close()
@@ -573,11 +551,10 @@ def folder_detail(folder_id):
 # ─── 취향 기반 AI 추천 ────────────────────────────────────
 @app.route("/ai-recommend", methods=["POST"])
 def ai_recommend():
-    data = request.json
+    data         = request.json
     liked_movies = data.get("liked_movies", [])
-    lang = data.get("lang", "ko")
-
-    movie_list = ", ".join(liked_movies[:10])
+    lang         = data.get("lang", "ko")
+    movie_list   = ", ".join(liked_movies[:10])
 
     prompts = {
         "ko": f"""사용자가 좋아하는 영화 목록: {movie_list}
@@ -594,7 +571,6 @@ def ai_recommend():
 
 📚 추천 책 1권
 책제목 - 추천 이유 한 줄""",
-
         "en": f"""User's liked movies: {movie_list}
 
 Based on this taste, recommend in this format:
@@ -609,7 +585,6 @@ Based on this taste, recommend in this format:
 
 📚 1 Book Recommendation
 Title - One line reason""",
-
         "ja": f"""ユーザーが好きな映画: {movie_list}
 
 この好みを分析して以下の形式で推薦してください：
@@ -629,7 +604,7 @@ Title - One line reason""",
     groq_key = os.getenv("GROQ_API_KEY")
     if groq_key:
         from groq import Groq
-        client = Groq(api_key=groq_key)
+        client  = Groq(api_key=groq_key)
         message = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             max_tokens=500,
@@ -643,9 +618,9 @@ Title - One line reason""",
 # ─── 취향 테스트 AI 결과 ──────────────────────────────────
 @app.route("/ai-quiz", methods=["POST"])
 def ai_quiz():
-    data = request.json
+    data    = request.json
     answers = data.get("answers", {})
-    lang = data.get("lang", "ko")
+    lang    = data.get("lang", "ko")
 
     a1 = answers.get(1, "")
     a2 = answers.get(2, "")
@@ -671,7 +646,6 @@ def ai_quiz():
 
 📚 어울리는 책 1권
 책제목 - 이유 한 줄""",
-
         "en": f"""Today's movie taste test:
 - Mood: {a1}
 - Preferred setting: {a2}
@@ -690,7 +664,6 @@ Recommend in this format:
 
 📚 1 Matching Book
 Title - One line reason""",
-
         "ja": f"""今日の映画の好みテスト結果：
 - 今日の気分: {a1}
 - 好みの舞台: {a2}
@@ -714,7 +687,7 @@ Title - One line reason""",
     groq_key = os.getenv("GROQ_API_KEY")
     if groq_key:
         from groq import Groq
-        client = Groq(api_key=groq_key)
+        client  = Groq(api_key=groq_key)
         message = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             max_tokens=500,
@@ -728,16 +701,16 @@ Title - One line reason""",
 # ─── 인기 영화 ────────────────────────────────────────────
 @app.route("/popular")
 def popular():
-    lang = request.args.get("lang", "ko")
+    lang      = request.args.get("lang", "ko")
     tmdb_lang = LANG_MAP.get(lang, "ko-KR")
     res = requests.get(f"{TMDB_BASE}/movie/popular", params={
-        "api_key": TMDB_KEY,
+        "api_key":  TMDB_KEY,
         "language": tmdb_lang,
-        "page": 1
+        "page":     1
     })
     movies = res.json().get("results", [])
     return jsonify({"movies": movies[:5]})
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True)git add .
