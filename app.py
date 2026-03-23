@@ -336,13 +336,20 @@ def send_otp():
     # 비동기 이메일 발송
     def send_mail_async():
         try:
-            resend.api_key = os.getenv("RESEND_API_KEY")
-            resend.Emails.send({
-                "from": "Movie MoveIt <onboarding@resend.dev>",
-                "to": [email],
-                "subject": "[Movie, MoveIt] 인증번호",
-                "html": html_content
-            })
+            import sib_api_v3_sdk
+            configuration = sib_api_v3_sdk.Configuration()
+            configuration.api_key['api-key'] = os.getenv("BREVO_API_KEY")
+            api = sib_api_v3_sdk.TransactionalEmailsApi(
+                sib_api_v3_sdk.ApiClient(configuration))
+            api.send_transac_email(
+                sib_api_v3_sdk.SendSmtpEmail(
+                    to=[{"email": email}],
+                    sender={"email": os.getenv("MAIL_USERNAME"),
+                            "name": "Movie MoveIt"},
+                    subject="[Movie, MoveIt] 인증번호",
+                    html_content=html_content
+                )
+            )
             print(f"Mail sent to {email}")
         except Exception as e:
             print(f"Mail error: {e}")
