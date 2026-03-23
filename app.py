@@ -18,11 +18,14 @@ TMDB_BASE = "https://api.themoviedb.org/3"
 LANG_MAP = {"ko": "ko-KR", "en": "en-US", "ja": "ja-JP"}
 
 # 이메일 설정
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")
-app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
+app.config['MAIL_SERVER']         = 'smtp.gmail.com'
+app.config['MAIL_PORT']           = 587
+app.config['MAIL_USE_TLS']        = True
+app.config['MAIL_USE_SSL']        = False
+app.config['MAIL_USERNAME']       = os.getenv("MAIL_USERNAME")
+app.config['MAIL_PASSWORD']       = os.getenv("MAIL_PASSWORD")
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_USERNAME")
+app.config['MAIL_TIMEOUT']        = 10
 mail = Mail(app)
 
 # DB 초기화
