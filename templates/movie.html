@@ -18,31 +18,44 @@
     .back-btn:hover { background: var(--bg3); }
 
     .hero {
-        display: flex;
+        display: grid;
+        grid-template-columns: 250px 1fr;
         gap: 40px;
-        max-width: 1000px;
+        max-width: 1100px;
         margin: 0 auto;
         padding: 20px;
+        align-items: start;
     }
-    .poster img { width: 250px; border-radius: 12px; }
-    .info { flex: 1; }
+    .poster img {
+        width: 250px;
+        border-radius: 12px;
+        display: block;
+    }
+    .info {
+        min-width: 0;
+        overflow: hidden;
+    }
     .info h1 {
         font-size: 2rem;
         margin-bottom: 10px;
         color: var(--text);
         transition: opacity .3s;
+        word-break: keep-all;
+        overflow-wrap: break-word;
     }
     .info .meta {
         color: var(--text2);
         font-size: 0.9rem;
         margin-bottom: 16px;
         transition: opacity .3s;
+        white-space: nowrap;
     }
     .info .overview {
         line-height: 1.7;
         color: var(--text2);
         margin-bottom: 24px;
         transition: opacity .3s;
+        word-break: keep-all;
     }
     .section-title {
         font-size: 1.1rem;
@@ -91,14 +104,51 @@
         object-fit: cover;
         background: var(--bg3);
     }
-    .cast-card p    { font-size: 0.75rem; margin-top: 6px; color: var(--text); }
+    .cast-card p  { font-size: 0.75rem; margin-top: 6px; color: var(--text); }
     .cast-card span { font-size: 0.7rem; color: var(--text2); }
 
-    .ai-section {
-        max-width: 1000px;
-        margin: 0 auto 40px;
-        padding: 0 20px;
+    .loading-overlay { opacity: 0.4; pointer-events: none; }
+
+    .action-btns {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        align-items: center;
     }
+    .action-btn {
+        padding: 8px 14px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--bg2);
+        color: var(--text);
+        cursor: pointer;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        transition: background .2s, color .2s;
+    }
+    .action-btn:hover { opacity: .85; }
+    .folder-select {
+        padding: 8px 14px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--bg2);
+        color: var(--text);
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+    .login-hint {
+        display: inline-block;
+        padding: 8px 18px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--bg2);
+        color: var(--text2);
+        text-decoration: none;
+        font-size: 0.85rem;
+        margin-bottom: 16px;
+    }
+
     .ai-lang-btn {
         padding: 6px 16px;
         border-radius: 20px;
@@ -139,52 +189,11 @@
         white-space: pre-wrap;
         display: none;
         border: 1px solid var(--border);
-    }
-    .loading-overlay {
-        opacity: 0.4;
-        pointer-events: none;
-    }
-    .action-btns {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 16px;
-        flex-wrap: wrap;
-        align-items: center;
-    }
-    .action-btn {
-        padding: 8px 18px;
-        border-radius: 20px;
-        border: 1px solid var(--border);
-        background: var(--bg2);
-        color: var(--text);
-        cursor: pointer;
-        font-size: 0.9rem;
-        transition: background .2s, color .2s;
-    }
-    .action-btn:hover { opacity: .85; }
-    .folder-select {
-        padding: 8px 14px;
-        border-radius: 20px;
-        border: 1px solid var(--border);
-        background: var(--bg2);
-        color: var(--text);
-        font-size: 0.9rem;
-        cursor: pointer;
-    }
-    .login-hint {
-        display: inline-block;
-        padding: 8px 18px;
-        border-radius: 20px;
-        border: 1px solid var(--border);
-        background: var(--bg2);
-        color: var(--text2);
-        text-decoration: none;
-        font-size: 0.85rem;
-        margin-bottom: 16px;
+        margin-bottom: 40px;
     }
 
     @media (max-width: 600px) {
-        .hero { flex-direction: column; }
+        .hero { grid-template-columns: 1fr; }
         .poster img { width: 100%; }
     }
 </style>
@@ -194,6 +203,7 @@
 <a href="/" class="back-btn" id="backBtn">← 검색으로 돌아가기</a>
 
 <div class="hero">
+    <!-- 포스터 -->
     <div class="poster" id="posterBox">
         {% if movie.poster_path %}
             <img id="posterImg"
@@ -206,10 +216,11 @@
         {% endif %}
     </div>
 
+    <!-- 정보 영역 -->
     <div class="info">
         <h1 id="movieTitle">{{ movie.title }}</h1>
 
-        <!-- 좋아요 / 나중에 보기 / 폴더 -->
+        <!-- ① 버튼 한 줄 -->
         {% if logged_in %}
         <div class="action-btns">
             <button id="likeBtn" class="action-btn"
@@ -217,6 +228,12 @@
                        color:{{ '#fff' if liked else 'var(--text)' }};"
                 onclick="toggleLike()">
                 ❤️ {{ '좋아요 취소' if liked else '좋아요' }}
+            </button>
+            <button id="dislikeBtn" class="action-btn"
+                style="background:{{ '#555' if disliked else 'var(--bg2)' }};
+                       color:{{ '#fff' if disliked else 'var(--text)' }};"
+                onclick="toggleDislike()">
+                👎 {{ '싫어요 취소' if disliked else '싫어요' }}
             </button>
             <button id="watchBtn" class="action-btn"
                 style="background:{{ '#185FA5' if watched else 'var(--bg2)' }};
@@ -240,16 +257,19 @@
         </a>
         {% endif %}
 
+        <!-- ② 개봉년 / 상영시간 / 평점 -->
         <div class="meta" id="movieMeta">
             {{ movie.release_date[:4] if movie.release_date else '연도 미상' }}
             {% if movie.runtime %} · {{ movie.runtime }}분{% endif %}
             {% if movie.vote_average %} · ⭐ {{ "%.1f"|format(movie.vote_average) }}{% endif %}
         </div>
 
+        <!-- ③ 줄거리 -->
         <p class="overview" id="movieOverview">
             {{ movie.overview or '줄거리 정보가 없습니다.' }}
         </p>
 
+        <!-- ④ 시청 가능한 플랫폼 -->
         <div class="section-title" id="ottTitle">시청 가능한 플랫폼 (한국)</div>
         <div class="ott-list" id="ottList">
             {% if providers.flatrate %}
@@ -265,6 +285,7 @@
             {% endif %}
         </div>
 
+        <!-- ⑤ 주요 출연진 -->
         {% if cast %}
         <div class="section-title" id="castTitle">주요 출연진</div>
         <div class="cast-list" id="castList">
@@ -283,20 +304,19 @@
             {% endfor %}
         </div>
         {% endif %}
-    </div>
-</div>
 
-<!-- AI 분석 섹션 -->
-<div class="ai-section">
-    <div class="section-title">🤖 AI 영화 분석</div>
-    <div style="display:flex; gap:8px; margin-bottom:14px;">
-        <button class="ai-lang-btn active" onclick="setAILang('ko', this)">한국어</button>
-        <button class="ai-lang-btn" onclick="setAILang('en', this)">English</button>
-        <button class="ai-lang-btn" onclick="setAILang('ja', this)">日本語</button>
-    </div>
-    <button class="ai-btn" id="aiBtn" onclick="getAISummary()">AI로 분석하기</button>
-    <div class="ai-result" id="aiResult"></div>
-</div>
+        <!-- ⑥ AI 영화 분석 -->
+        <div class="section-title">🤖 AI 영화 분석</div>
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+            <button class="ai-lang-btn active" onclick="setAILang('ko', this)">한국어</button>
+            <button class="ai-lang-btn" onclick="setAILang('en', this)">English</button>
+            <button class="ai-lang-btn" onclick="setAILang('ja', this)">日本語</button>
+        </div>
+        <button class="ai-btn" id="aiBtn" onclick="getAISummary()">AI로 분석하기</button>
+        <div class="ai-result" id="aiResult"></div>
+
+    </div><!-- /info -->
+</div><!-- /hero -->
 {% endblock %}
 
 {% block extra_script %}
@@ -476,7 +496,33 @@ async function toggleLike() {
     const btn = document.getElementById('likeBtn');
     btn.textContent      = data.liked ? '❤️ 좋아요 취소' : '❤️ 좋아요';
     btn.style.background = data.liked ? 'var(--accent)' : 'var(--bg2)';
-    btn.style.color      = data.liked ? '#fff'         : 'var(--text)';
+    btn.style.color      = data.liked ? '#fff'          : 'var(--text)';
+}
+
+async function toggleDislike() {
+    const res = await fetch('/dislike', {
+        method:  'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            movie_id:    MOVIE_ID_NUM,
+            movie_title: MOVIE_TITLE,
+            poster_path: POSTER_PATH
+        })
+    });
+    const data = await res.json();
+    if (!data.ok) { alert(data.msg); return; }
+
+    const btn = document.getElementById('dislikeBtn');
+    btn.textContent      = data.disliked ? '👎 싫어요 취소' : '👎 싫어요';
+    btn.style.background = data.disliked ? '#555'           : 'var(--bg2)';
+    btn.style.color      = data.disliked ? '#fff'           : 'var(--text)';
+
+    if (data.disliked) {
+        const likeBtn = document.getElementById('likeBtn');
+        likeBtn.textContent      = '❤️ 좋아요';
+        likeBtn.style.background = 'var(--bg2)';
+        likeBtn.style.color      = 'var(--text)';
+    }
 }
 
 async function toggleWatch() {

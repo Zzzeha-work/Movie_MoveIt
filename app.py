@@ -107,6 +107,7 @@ def movie_detail(movie_id):
 
     liked = False
     watched = False
+    disliked = False  # ← 추가
     user_folders = []
     if session.get("user_email"):
         db = get_db()
@@ -120,6 +121,9 @@ def movie_detail(movie_id):
             watched = bool(db.execute(
                 "SELECT id FROM watchlist WHERE user_id=? AND movie_id=?",
                 (user_id, movie_id)).fetchone())
+            disliked = bool(db.execute(  # ← 추가
+                "SELECT id FROM dislikes WHERE user_id=? AND movie_id=?",
+                (user_id, movie_id)).fetchone())
             user_folders = db.execute(
                 "SELECT * FROM folders WHERE user_id=?", (user_id,)).fetchall()
         db.close()
@@ -131,6 +135,7 @@ def movie_detail(movie_id):
                            current_lang=lang,
                            liked=liked,
                            watched=watched,
+                           disliked=disliked,  # ← 추가
                            user_folders=user_folders,
                            logged_in=bool(session.get("user_email")))
 
@@ -170,7 +175,8 @@ def ai_summary():
     lang = data.get("lang", "ko")
 
     prompts = {
-        "ko": f"""영화 '{title}'에 대해 한국어로 작성해주세요:
+        "ko": f"""반드시 한국어로만 작성하세요. 다른 언어는 절대 사용하지 마세요.
+        영화 '{title}'에 대해 한국어로 작성해주세요:
 1. 핵심 줄거리 요약 (2~3문장)
 2. 장르 키워드 3개
 3. 추천 유사 영화 2편
@@ -192,7 +198,7 @@ Overview: {overview}""",
         from groq import Groq
         client = Groq(api_key=groq_key)
         message = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model="llama-3.3-70b-versatile",
             max_tokens=500,
             messages=[{"role": "user", "content": prompts.get(lang, prompts["ko"])}]
         )
@@ -428,6 +434,43 @@ def toggle_like():
     return jsonify({"ok": True, "liked": liked})
 
 
+# ─── 싫어요 토글 ──────────────────────────────────────────
+@app.route("/dislike", methods=["POST"])
+def toggle_dislike():
+    if not session.get("user_email"):
+        return jsonify({"ok": False, "msg": "로그인이 필요합니다."})
+
+    data = request.json
+    movie_id = data.get("movie_id")
+    movie_title = data.get("movie_title")
+    poster_path = data.get("poster_path")
+
+    db = get_db()
+    user = db.execute("SELECT id FROM users WHERE email=?",
+                      (session["user_email"],)).fetchone()
+    user_id = user["id"]
+    exists = db.execute(
+        "SELECT id FROM dislikes WHERE user_id=? AND movie_id=?",
+        (user_id, movie_id)).fetchone()
+
+    if exists:
+        db.execute("DELETE FROM dislikes WHERE user_id=? AND movie_id=?",
+                   (user_id, movie_id))
+        disliked = False
+    else:
+        db.execute(
+            "INSERT INTO dislikes (user_id, movie_id, movie_title, poster_path) VALUES (?,?,?,?)",
+            (user_id, movie_id, movie_title, poster_path))
+        disliked = True
+        # 싫어요 누르면 좋아요는 자동 해제
+        db.execute("DELETE FROM likes WHERE user_id=? AND movie_id=?",
+                   (user_id, movie_id))
+
+    db.commit()
+    db.close()
+    return jsonify({"ok": True, "disliked": disliked})
+
+
 # ─── 나중에 보기 토글 ─────────────────────────────────────
 @app.route("/watchlist", methods=["POST"])
 def toggle_watchlist():
@@ -483,6 +526,9 @@ def mypage():
     folders = db.execute(
         "SELECT * FROM folders WHERE user_id=? ORDER BY created_at DESC",
         (user_id,)).fetchall()
+    dislikes = db.execute(  # ← 추가
+        "SELECT * FROM dislikes WHERE user_id=? ORDER BY saved_at DESC",
+        (user_id,)).fetchall()
     db.close()
 
     return render_template("mypage.html",
@@ -490,6 +536,7 @@ def mypage():
                            likes=likes,
                            watchlist=watchlist,
                            folders=folders,
+                           dislikes=dislikes,  # ← 추가
                            current_lang=lang)
 
 
@@ -561,52 +608,77 @@ def folder_detail(folder_id):
 def ai_recommend():
     data = request.json
     liked_movies = data.get("liked_movies", [])
+    disliked_movies = data.get("disliked_movies", [])  # ← 추가
     lang = data.get("lang", "ko")
-    movie_list = ", ".join(liked_movies[:10])
+    like_list = ", ".join(liked_movies[:10])
+    dislike_list = ", ".join(disliked_movies[:5]) if disliked_movies else "없음"  # ← 추가
 
     prompts = {
-        "ko": f"""사용자가 좋아하는 영화 목록: {movie_list}
+        "ko": f"""반드시 한국어로만 작성하세요. 영어, 일본어 등 다른 언어는 절대 사용하지 마세요.
+반드시 실제로 존재하고 유명한 영화와 책만 추천하세요. 모르는 작품은 추천하지 마세요.
 
-이 취향을 분석해서 아래 형식으로 추천해주세요:
+사용자가 좋아하는 영화: {like_list}
+사용자가 싫어하는 영화: {dislike_list}
 
+    싫어하는 영화와 비슷한 스타일은 추천에서 제외하고,
+    취향을 분석해서 아래 형식으로 추천해주세요:
 🎯 취향 분석
 (2문장으로 이 사람의 영화 취향 설명)
 
 🎬 추천 영화 3편
-1. 영화제목 - 추천 이유 한 줄
-2. 영화제목 - 추천 이유 한 줄
-3. 영화제목 - 추천 이유 한 줄
+1. 영화제목
+    - 추천 이유 한 줄
+2. 영화제목
+    - 추천 이유 한 줄
+3. 영화제목
+    - 추천 이유 한 줄
 
 📚 추천 책 1권
-책제목 - 추천 이유 한 줄""",
-        "en": f"""User's liked movies: {movie_list}
+- 추천 이유 한 줄""",
+
+        "en": f"""Only recommend well-known movies and books that actually exist. Do not make up titles.
+Respond in English only.
+
+Liked movies: {like_list}
+Disliked movies: {dislike_list}
 
 Based on this taste, recommend in this format:
 
 🎯 Taste Analysis
-(2 sentences about their movie preference)
+(2 sentences)
 
 🎬 3 Movie Recommendations
-1. Title - One line reason
-2. Title - One line reason
-3. Title - One line reason
+1. Title 
+    - One line reason
+2. Title 
+    - One line reason
+3. Title 
+    - One line reason
 
-📚 1 Book Recommendation
-Title - One line reason""",
-        "ja": f"""ユーザーが好きな映画: {movie_list}
+📚📚 1 Book Recommendation
+- One line reason""",
 
-この好みを分析して以下の形式で推薦してください：
+        "ja": f"""実在する有名な映画と本のみを推薦してください。存在しない作品は推薦しないでください。
+日本語のみで回答してください。
+
+好きな映画: {like_list}
+嫌いな映画: {dislike_list}
+
+嫌いな映画に似たスタイルを除いて推薦してください：
 
 🎯 好み分析
-（2文でこの人の映画の好みを説明）
+（2文）
 
 🎬 おすすめ映画3本
-1. タイトル - おすすめ理由1行
-2. タイトル - おすすめ理由1行
-3. タイトル - おすすめ理由1行
+1. タイトル 
+    - 理由1行
+2. タイトル 
+    - 理由1行
+3. タイトル 
+    - 理由1行
 
 📚 おすすめ本1冊
-タイトル - おすすめ理由1行"""
+- 理由1行"""
     }
 
     groq_key = os.getenv("GROQ_API_KEY")
@@ -614,7 +686,7 @@ Title - One line reason""",
         from groq import Groq
         client = Groq(api_key=groq_key)
         message = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model="llama-3.3-70b-versatile",
             max_tokens=500,
             messages=[{"role": "user", "content": prompts.get(lang, prompts["ko"])}]
         )
@@ -636,7 +708,10 @@ def ai_quiz():
     a4 = answers.get(4, "")
 
     prompts = {
-        "ko": f"""사용자의 오늘 영화 취향 테스트 결과:
+        "ko": f"""반드시 한국어로만 작성하세요. 영어, 일본어 등 다른 언어는 절대 사용하지 마세요.
+반드시 실제로 존재하고 유명한 영화와 책만 추천하세요. 모르는 작품은 추천하지 마세요.
+
+        사용자의 오늘 영화 취향 테스트 결과:
 - 오늘 기분: {a1}
 - 선호 배경: {a2}
 - 같이 볼 사람: {a3}
@@ -648,13 +723,19 @@ def ai_quiz():
 (이 사람에게 맞는 영화 스타일 2문장)
 
 🎬 딱 맞는 영화 3편
-1. 영화제목 - 이유 한 줄
-2. 영화제목 - 이유 한 줄
-3. 영화제목 - 이유 한 줄
+1. 영화제목 
+    - 이유 한 줄
+2. 영화제목 
+    - 이유 한 줄
+3. 영화제목 
+    - 이유 한 줄
 
 📚 어울리는 책 1권
-책제목 - 이유 한 줄""",
-        "en": f"""Today's movie taste test:
+- 이유 한 줄""",
+
+        "en": f"""Only recommend well-known movies and books that actually exist. Do not make up titles.
+Respond in English only.
+
 - Mood: {a1}
 - Preferred setting: {a2}
 - Watching with: {a3}
@@ -666,13 +747,18 @@ Recommend in this format:
 (2 sentences about what suits them)
 
 🎬 3 Perfect Movies
-1. Title - One line reason
-2. Title - One line reason
-3. Title - One line reason
+1. Title 
+    - One line reason
+2. Title 
+    - One line reason
+3. Title 
+    - One line reason
 
 📚 1 Matching Book
-Title - One line reason""",
-        "ja": f"""今日の映画の好みテスト結果：
+- One line reason""",
+
+        "ja": f"""実在する有名な映画と本のみを推薦してください。存在しない作品は推薦しないでください。
+日本語のみで回答してください。
 - 今日の気分: {a1}
 - 好みの舞台: {a2}
 - 一緒に見る人: {a3}
@@ -684,12 +770,15 @@ Title - One line reason""",
 （この人に合う映画スタイル2文）
 
 🎬 ぴったりの映画3本
-1. タイトル - 理由1行
-2. タイトル - 理由1行
-3. タイトル - 理由1行
+1. タイトル 
+    - 理由1行
+2. タイトル 
+    - 理由1行
+3. タイトル 
+    - 理由1行
 
 📚 合う本1冊
-タイトル - 理由1行"""
+- 理由1行"""
     }
 
     groq_key = os.getenv("GROQ_API_KEY")
@@ -697,7 +786,7 @@ Title - One line reason""",
         from groq import Groq
         client = Groq(api_key=groq_key)
         message = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model="llama-3.3-70b-versatile",
             max_tokens=500,
             messages=[{"role": "user", "content": prompts.get(lang, prompts["ko"])}]
         )

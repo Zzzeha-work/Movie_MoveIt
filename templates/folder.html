@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}{{ folder.name }} - Movie, MoveIt{% endblock %}
+
+{% block extra_style %}
+<style>
+    .folder-wrap {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 30px 20px;
+    }
+
+    .folder-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 30px;
+    }
+
+    .folder-header h1 {
+        font-size: 1.5rem;
+        color: var(--text);
+    }
+
+    .back-link {
+        color: var(--text2);
+        text-decoration: none;
+        font-size: 0.9rem;
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg2);
+    }
+
+    .back-link:hover {
+        background: var(--bg3);
+    }
+
+    .movie-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 16px;
+    }
+
+    .movie-card {
+        background: var(--bg2);
+        border-radius: 10px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform .2s;
+        border: 1px solid var(--border);
+    }
+
+    .movie-card:hover {
+        transform: scale(1.04);
+    }
+
+    .movie-card img {
+        width: 100%;
+        aspect-ratio: 2/3;
+        object-fit: cover;
+        background: var(--bg3);
+    }
+
+    .movie-card-info {
+        padding: 8px;
+    }
+
+    .movie-card-info p {
+        font-size: 0.8rem;
+        color: var(--text);
+        margin: 0;
+    }
+
+    .empty-msg {
+        color: var(--text2);
+        font-size: 0.9rem;
+        margin-top: 20px;
+    }
+
+    .folder-count {
+        color: var(--text2);
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="folder-wrap">
+    <div class="folder-header">
+        <a href="/mypage" class="back-link">← 마이페이지</a>
+        <h1>📁 {{ folder.name }}</h1>
+        <span class="folder-count">{{ items|length }}편</span>
+    </div>
+
+    {% if items %}
+    <div class="movie-grid">
+        {% for item in items %}
+        <div class="movie-card"
+             onclick="location.href='/movie/{{ item.movie_id }}'">
+            <img src="{{ 'https://image.tmdb.org/t/p/w300' + item.poster_path
+                         if item.poster_path
+                         else 'https://via.placeholder.com/300x450?text=No+Image' }}"
+                 alt="{{ item.movie_title }}"
+                 loading="lazy">
+            <div class="movie-card-info">
+                <p>{{ item.movie_title }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-msg">
+        이 폴더에 아직 영화가 없어요.<br>
+        영화 상세 페이지에서 폴더에 추가해보세요!
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

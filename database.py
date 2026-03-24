@@ -42,6 +42,19 @@ def init_db():
         )
     """)
 
+    # 싫어요 테이블
+    cursor.execute("""
+                   CREATE TABLE IF NOT EXISTS dislikes (
+                       id INTEGER PRIMARY KEY AUTOINCREMENT,
+                       user_id INTEGER NOT NULL,
+                       movie_id INTEGER NOT NULL,
+                       movie_title TEXT,
+                       poster_path TEXT,
+                       saved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                       UNIQUE(user_id, movie_id)
+                       )
+                   """)
+
     # 나중에 보기 테이블
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS watchlist (

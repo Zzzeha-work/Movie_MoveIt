@@ -187,13 +187,12 @@
         border-radius: 8px;
         padding: 14px;
         font-size: 0.85rem;
-        line-height: 1.8;
         color: var(--text2);
-        white-space: pre-wrap;
         display: none;
         border: 1px solid var(--border);
-        max-height: 300px;
+        max-height: 320px;
         overflow-y: auto;
+        line-height: 1.7;
     }
 
     /* 취향 테스트 */
@@ -422,6 +421,57 @@
 
 {% block extra_script %}
 <script>
+    function formatAI(text) {
+        if (!text) return '';
+        return text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .split('\n')
+            .map(line => {
+                line = line.trim();
+                if (!line) return '<br>';
+
+                // 🎯 🎬 📚 ✨ 등 이모지 섹션 제목
+                if (/^[🎯🎬📚✨🎮💡]/.test(line)) {
+                    return `<p style="font-weight:600; color:var(--text);
+                              margin:18px 0 8px;">${line}</p>`;
+                }
+
+                // 1. 2. 3. 번호 목록 — 하이픈(-)을 기준으로 제목/이유 분리
+                if (/^\d+\./.test(line)) {
+                    const dashIdx = line.indexOf(' - ');
+                    if (dashIdx !== -1) {
+                        const title = line.slice(0, dashIdx).trim();
+                        const reason = line.slice(dashIdx + 3).trim();
+                        return `<p style="margin:10px 0 2px; padding-left:8px;
+                                  color:var(--text); font-weight:600;
+                                  line-height:1.6;">${title}</p>
+                            <p style="margin:0 0 8px; padding-left:8px;
+                                  color:var(--text2); line-height:1.6;">
+                                  - ${reason}</p>`;
+                    }
+                    return `<p style="margin:10px 0 2px; padding-left:8px;
+                              color:var(--text); line-height:1.6;">${line}</p>`;
+                }
+
+                // 책제목 : ~ 형태 처리
+                if (line.includes(' : ')) {
+                    const parts = line.split(' : ');
+                    const label = parts[0].trim();
+                    const content = parts.slice(1).join(' : ').trim();
+                    return `<p style="margin:10px 0 2px; padding-left:8px;
+                              color:var(--text); font-weight:600;
+                              line-height:1.6;">${label}</p>
+                        <p style="margin:0 0 8px; padding-left:8px;
+                              color:var(--text2); line-height:1.6;">
+                              - ${content}</p>`;
+                }
+
+                return `<p style="margin:3px 0; color:var(--text2);
+                          line-height:1.6;">${line}</p>`;
+            })
+            .join('');
+    }
+
     // ── 마이페이지 언어 텍스트 ─────────────────────────────
     const mypageTexts = {
         ko: {
@@ -660,6 +710,8 @@
     // @formatter:off
     const likedMovies = [
     {% for m in likes %}"{{ m.movie_title }}"{% if not loop.last %},{% endif %}{% endfor %}];
+    const dislikedMovies = [
+    {% for m in dislikes %}"{{ m.movie_title }}"{% if not loop.last %},{% endif %}{% endfor %}];
     // @formatter:on
 
     async function getRecommendation() {
@@ -669,23 +721,27 @@
 
         if (likedMovies.length === 0) {
             result.style.display = 'block';
-            result.textContent = t.ai_empty;
+            result.innerHTML = t.ai_empty;
             return;
         }
 
         btn.disabled = true;
         btn.textContent = t.ai_loading;
         result.style.display = 'block';
-        result.textContent = t.ai_loading;
+        result.innerHTML = `<span style="color:var(--text2)">${t.ai_loading}</span>`;
 
         const lang = localStorage.getItem('lang') || 'ko';
         const res = await fetch('/ai-recommend', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({liked_movies: likedMovies, lang})
+            body: JSON.stringify({
+                liked_movies: likedMovies,
+                disliked_movies: dislikedMovies,  // ← 추가
+                lang
+            })
         });
         const data = await res.json();
-        result.textContent = data.result;
+        result.innerHTML = formatAI(data.result);
         btn.disabled = false;
         btn.textContent = t.ai_rerun;
     }
@@ -708,7 +764,7 @@
     async function runQuiz() {
         const t = currentLangData;
         const result = document.getElementById('quizResult');
-        result.textContent = t.quiz_loading;
+        result.innerHTML = `<span style="color:var(--text2)">${t.quiz_loading}</span>`;
 
         const lang = localStorage.getItem('lang') || 'ko';
         const res = await fetch('/ai-quiz', {
@@ -717,7 +773,7 @@
             body: JSON.stringify({answers: quizAnswers, lang})
         });
         const data = await res.json();
-        result.textContent = data.result;
+        result.innerHTML = formatAI(data.result);
     }
 
     function restartQuiz() {
