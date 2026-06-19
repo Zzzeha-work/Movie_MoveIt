@@ -342,20 +342,19 @@ def send_otp():
     # 비동기 이메일 발송
     def send_mail_async():
         try:
-            import sib_api_v3_sdk
-            configuration = sib_api_v3_sdk.Configuration()
-            configuration.api_key['api-key'] = os.getenv("BREVO_API_KEY")
-            api = sib_api_v3_sdk.TransactionalEmailsApi(
-                sib_api_v3_sdk.ApiClient(configuration))
-            api.send_transac_email(
-                sib_api_v3_sdk.SendSmtpEmail(
-                    to=[{"email": email}],
-                    sender={"email": os.getenv("MAIL_USERNAME"),
-                            "name": "Movie MoveIt"},
-                    subject="[Movie, MoveIt] 인증번호",
-                    html_content=html_content
-                )
-            )
+            import smtplib
+            from email.mime.text import MIMEText
+            from email.mime.multipart import MIMEMultipart
+
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = "[Movie, MoveIt] 인증번호"
+            msg["From"] = os.getenv("GMAIL_ADDRESS")
+            msg["To"] = email
+            msg.attach(MIMEText(html_content, "html"))
+
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+                server.login(os.getenv("GMAIL_ADDRESS"), os.getenv("GMAIL_APP_PASSWORD"))
+                server.sendmail(os.getenv("GMAIL_ADDRESS"), email, msg.as_string())
             print(f"Mail sent to {email}")
         except Exception as e:
             print(f"Mail error: {e}")
