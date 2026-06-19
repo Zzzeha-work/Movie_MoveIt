@@ -37,7 +37,7 @@
 - Python 3.13
 - Flask 3.1.3
 - SQLite3
-- Flask-Mail (Gmail SMTP)
+- smtplib (Gmail SMTP)
 
 **Frontend**
 - HTML5 / CSS3 / JavaScript
@@ -46,7 +46,7 @@
 
 **외부 API**
 - TMDB API — 영화 정보, OTT 플랫폼, 출연진
-- Groq API (LLaMA 3.1-8b-instant) — AI 분석 및 추천
+- Groq API (LLaMA 3.3-70B) — AI 분석 및 추천
 - Gmail SMTP — OTP 인증 이메일
 
 **개발 도구**
@@ -90,8 +90,8 @@ pip install -r requirements.txt
 # 4. 환경변수 설정 (.env 파일 생성)
 TMDB_API_KEY=발급받은키
 GROQ_API_KEY=발급받은키
-MAIL_USERNAME=Gmail주소
-MAIL_PASSWORD=앱비밀번호
+GMAIL_ADDRESS=Gmail주소
+GMAIL_APP_PASSWORD=Gmail앱비밀번호
 SECRET_KEY=임의의문자열
 
 # 5. 서버 실행
